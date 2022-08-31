@@ -14,7 +14,7 @@ time = ncread(filename, 'Time');                                                
 % [hours, minutes]
 startTime = [str2double(info.Variables(1).Attributes(3).Value(26:27)),...
     str2double(info.Variables(1).Attributes(3).Value(29:30))];      % Start time of the data log in UTC
-drop_size_dist = ncread(filename, 'CCDP_RWO')./1e-4;                                                                       % Measured in #/cm^3    
+drop_size_dist = ncread(filename, 'CCDP_RWO');                                                                       % Measured in #/micron/cm^3    
 lat = ncread(filename, 'LAT');                                                                                          % Meausred in degrees North
 long = ncread(filename, 'LON');                                                                                         % Meausred in degrees East
 altitude = ncread(filename, 'ALTX');                                                                                    % Measured in meters above sea level
@@ -34,32 +34,44 @@ drop_bins = info.Variables(120).Attributes(10).Value;                        % m
 first_bin = info.Variables(120).Attributes(8).Value;
 last_bin = info.Variables(120).Attributes(9).Value;
 
-drop_bins = drop_bins(first_bin:last_bin);
+drop_bins = drop_bins(first_bin:last_bin);                                  % microns
 drop_size_dist = drop_size_dist(first_bin:last_bin,1,:);
 
 % Lets compute the effective radius, which is the 3rd moment to the 2nd
 % moment
 nr = reshape(drop_size_dist,length(drop_bins),[]);
 
-% Convert droplet size to cm
-drop_bins_cm = drop_bins./1e4;                                          % cm
-droplet_matrix = repmat((drop_bins_cm)', 1, length(time));            % cm
+droplet_matrix = repmat((drop_bins)', 1, length(time));            % microns
 
 
 % Compute the ratio of the third moment to the second moment and convert
 % back to microns
-re = 1e4 * trapz(drop_bins_cm, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins_cm, droplet_matrix.^2 .* nr, 1);                      
+%re = 1e4 * trapz(drop_bins_cm, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins_cm, droplet_matrix.^2 .* nr, 1);                      
+
+re = trapz(drop_bins, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins, droplet_matrix.^2 .* nr, 1);                      
 
 
 % Lets compute the total number concetration at each time step by
 % integrating over r
-total_Nc = trapz(drop_bins_cm, nr,1);       % cm^(-3)
+total_Nc = trapz(drop_bins, nr,1);       % cm^(-3)
 
+
+% Lets compute the liquid water content and liquid water path
+rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
+
+% we have to convert re to cm in order to have the finals units be in grams
+% per meter cubed
+
+lwc = 4/3 * pi *  rho_lw * sum(nr .* (droplet_matrix./1e4).^3,1);                    % grams of liquid water/meter cubed of air
+
+
+%% Collect all of the data
 % We ignore the last bin in the data set. According to the nc info file,
 % the data does not extend through all 31 rows. 
 
-vocalsRex.CDP_data = nr;
+vocalsRex.nr = nr;
 vocalsRex.Nc = total_Nc;
+vocalsRex.lwc = lwc;
 vocalsRex.time = time;
 vocalsRex.startTime = startTime;                                  % We have to assume that this is in UTC time as well
 vocalsRex.drop_bins = drop_bins;
