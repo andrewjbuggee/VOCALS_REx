@@ -1,4 +1,4 @@
-function pixels2use = find_MODIS_VOCALS_overlapping_pixels(modis, inputs, vocalsRex, index)
+function pixels2use = find_MODIS_VOCALS_overlapping_pixels(modis, inputs, vocalsRex)
 
 % Define folder to save calculations
 folderName2Save = inputs.savedCalculations_folderName; % where to save the indices
@@ -20,37 +20,61 @@ tauThreshold = inputs.pixels.tauThreshold;
 uncertaintyLimit = 10;                              % percentage
 
 
-% Now we step through each vocals Rex location and find the pixel in the
-% MODIS scene that is closest to it
+% Let's check to see that the MODIS data that coincides with the cloud
+% profile chosen within vocals-Rex matches these requirements
+index2check = vocalsRex.modisIndex_minDist;
 
-num_vocals_locations = length(vocalsRex.latitude(index));
+if liquidWater_mask(index2check)==true && modis.cloud.optThickness17(index2check)>=tauThreshold
 
+else
+    error([newline,'The MODIS pixel chosen for comparison with the VOCALS-REx measurement is incompatible',newline,...
+        'Either this pixel didnt detect liquid water, or it didnt surpass the tau threshold',newline])
 
-% only use the indexs where the plane is rising into a cloud
-vocalsLat = vocalsRex.latitude(index);
-vocalsLong = vocalsRex.longitude(index);
-
-index_closest_pixel = zeros(1,num_vocals_locations);
-
-for nn = 1:num_vocals_locations
-
-    dist = sqrt((modis.geo.lat - vocalsLat(nn)).^2 + (modis.geo.long - vocalsLong(nn)).^2);
-    [~,index_closest_pixel(nn)] = min(dist,[],"all");
-    
 end
 
-% There are bound to be redundant values. Take only the unique indexes
-indexes2keep = unique(index_closest_pixel);
 
-% Now we need to sort through and make sure to keep only the indexes with a
-% liquid water phase, a tau above our threshold and the retrieval below our
-% uncertainty limit
-index_threshold = modis.cloud.phase(indexes2keep)==2 & modis.cloud.optThickness17(indexes2keep)>=tauThreshold & modis.cloud.effRad_uncert_17(indexes2keep)<=uncertaintyLimit;
+% ------------------------------------------------------------------------
+% ----------------------------- OLD CODE ---------------------------------
+% ------------------------------------------------------------------------
 
-% This is the final list! Keep all of these pixels!
 
-    % store the linear index, the rows and the columns
-pixels2use.res1km.linearIndex = indexes2keep(index_threshold);
+% % Now we step through each vocals Rex location and find the pixel in the
+% % MODIS scene that is closest to it
+% 
+% num_vocals_locations = length(vocalsRex.latitude(index));
+% 
+% 
+% % only use the indexs where the plane is rising into a cloud
+% vocalsLat = vocalsRex.latitude(index);
+% vocalsLong = vocalsRex.longitude(index);
+% 
+% index_closest_pixel = zeros(1,num_vocals_locations);
+% 
+% for nn = 1:num_vocals_locations
+% 
+%     dist = sqrt((modis.geo.lat - vocalsLat(nn)).^2 + (modis.geo.long - vocalsLong(nn)).^2);
+%     [~,index_closest_pixel(nn)] = min(dist,[],"all");
+%     
+% end
+% 
+% % There are bound to be redundant values. Take only the unique indexes
+% indexes2keep = unique(index_closest_pixel);
+% 
+% % Now we need to sort through and make sure to keep only the indexes with a
+% % liquid water phase, a tau above our threshold and the retrieval below our
+% % uncertainty limit
+% index_threshold = modis.cloud.phase(indexes2keep)==2 & modis.cloud.optThickness17(indexes2keep)>=tauThreshold & modis.cloud.effRad_uncert_17(indexes2keep)<=uncertaintyLimit;
+% 
+% % This is the final list! Keep all of these pixels!
+
+
+% ------------------------------------------------------------------------
+% ------------------------------------------------------------------------
+
+
+
+% store the linear index, the rows and the columns
+pixels2use.res1km.linearIndex = index2check;
 
 [pixels2use.res1km.row, pixels2use.res1km.col] = ind2sub(size(modis.geo.lat), pixels2use.res1km.linearIndex);
     
