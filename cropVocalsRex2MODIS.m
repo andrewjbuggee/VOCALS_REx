@@ -4,31 +4,35 @@ function vocalsRex = cropVocalsRex2MODIS(vocalsRex, modis,vocalsRexFolder,modisF
 
 
 
-% convert the start time to decimal time
+% convert the MODIS time to decimal time (fraction of 1 day)
 sec_per_hour = 3600;                                                                    % sec
 sec_per_min = 60;                                                                       % sec
 sec_per_day = 86400;                                                                    % sec
 
 modis_dataTime = (modis.time(1)*sec_per_hour + modis.time(2)*sec_per_min)/sec_per_day;
 
+% Convert start time of VOCALS-REx flight to same decimal time (fraction of
+% 1 day)
 startTime_dec = (vocalsRex.startTime(1)*sec_per_hour + vocalsRex.startTime(2)*sec_per_min)/sec_per_day;                      % fraction of a day 
 
 % define the time within the vocals-rex profile where a nice cloud profile
 % exists
 
-if strcmp(modisFolder(96:end),'/2008_11_11_1430/')==true && strcmp(vocalsRexFolder(74:end),'/2008_11_11/')==true
+
+
+if strcmp(modisFolder(end-16:end),'/2008_11_11_1430/')==true && strcmp(vocalsRexFolder(end-11:end),'/2008_11_11/')==true
 
     cloud_profile_time = 0.6069;
 
     index_delay = 4;
 
-elseif strcmp(modisFolder(96:end),'/2008_11_09/')==true && strcmp(vocalsRexFolder(74:end),'/2008_11_09/')==true
+elseif strcmp(modisFolder(end-11:end),'/2008_11_09/')==true && strcmp(vocalsRexFolder(end-11:end),'/2008_11_09/')==true
 
     cloud_profile_time = 0.6120;
 
     index_delay = 0;
 
-elseif strcmp(modisFolder(96:end),'/2008_11_11_1850/')==true && strcmp(vocalsRexFolder(74:end),'/2008_11_11/')==true
+elseif strcmp(modisFolder(end-16:end),'/2008_11_11_1850/')==true && strcmp(vocalsRexFolder(end-11:end),'/2008_11_11/')==true
 
     cloud_profile_time = 0.7816;
 
@@ -36,7 +40,7 @@ elseif strcmp(modisFolder(96:end),'/2008_11_11_1850/')==true && strcmp(vocalsRex
 
 else
 
-    error([newline, 'What is the decimal time of the cloud profiel you wish to look at?', newline])
+    error([newline, 'What is the decimal time of the cloud profile you wish to look at?', newline])
 
 end
 
