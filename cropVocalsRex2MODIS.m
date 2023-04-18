@@ -47,8 +47,6 @@ end
 
 cloudProfile_secSinceStart = floor((cloud_profile_time - startTime_dec)*sec_per_day);                               % seconds since flight started up to the time indicated by painemal and zudema
 
-modis_secSinceStart = floor((modis_dataTime - startTime_dec)*sec_per_day);
-
 
 % Define the number of discrete points in time you wish to look at. The
 % center point will be at the start time calculated above
@@ -68,18 +66,20 @@ dist_btwn_PZ_startTime_and_MODIS = sqrt((modis.geo.lat - vocalsRex.latitude(clou
 
 
 
-% Cloud bottom = location where LWC = 0.03 g/m^3
-% ****** There are two ways we could define LWC *****
+
+% ****** There are two ways we could define Cloud Top *****
 % Cloud top is tricky. The vocals rex data shows droplets being recorded
 % for several data points past the peak LWC value. But MODIS estimates for
 % optical depth better align with the cloud top being defined as the peak
 % LWC value. After this maximum, LWC tends to fall off dramatically
 
 % Cloud top = location where re goes to 0 after LWC> 0.03 g/m^3
-% Cloud top = maximum valude of LWC after LWC> 0.03 g/m^3
+% Cloud top = maximum value of LWC after LWC> 0.03 g/m^3
 
 % First find the index cloud bottom using the definition above
 
+% Cloud bottom = location where LWC = 0.03 g/m^3 - Painemal and Zuidema
+% (2011) defintion
 lwc_lim = 0.03;                                                 % grams/m^3 - lower limit defining cloud base
 
 LWC_window_index = cloudProfile_secSinceStart - windowLength/2 : cloudProfile_secSinceStart + windowLength/2;
@@ -89,8 +89,8 @@ index_cloudBottom = LWC_window_index(1) + index_minVal(1) -1;
 
 
 
-% Now lets find the index for cloud top using the definition above
-% find the first value of re=0 after the above index
+% Now lets find the index for cloud top by finding the value of effective
+% radius goes to 0
 
 window_data = vocalsRex.re(index_cloudBottom : index_cloudBottom + 100);
 index_nan = find(isnan(window_data));
