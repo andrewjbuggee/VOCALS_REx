@@ -115,7 +115,7 @@ drop_radius_bin_edges = [drop_radius_bin_edges_CDP, drop_radius_bin_edges_2DC]; 
 Nc = [reshape(num_concentration_CDP,length(drop_radius_bin_center_CDP),[]); zeros(1,length(time)); reshape(num_concentration_2DC,length(drop_radius_bin_center_2DC),[])];          % Number of droplets in each bin
 %Nc2 = [reshape(drop_size_dist_CDP2,length(drop_radius_bin_edges_CDP2),[]); reshape(drop_size_dist_2DC2,length(drop_radius_bin_edges_2DC2),[])];          % Number of droplets in each bin
 
-droplet_matrix_center = repmat((drop_radius_bin_center)', 1, length(time))./1e4;                                                               % cm
+droplet_matrix_center = repmat((drop_radius_bin_center)', 1, length(time))./1e4;                % cm                                                         % cm
 %droplet_matrix_center2 = repmat((drop_radius_bin_center2)', 1, length(time));                                                                  % microns
 %droplet_matrix_firstEdge = repmat((drop_radius_bin_first_edge)', 1, length(time))./1e4;                                                        % cm
 %droplet_matrix_edges = repmat((drop_radius_bin_edges)', 1, length(time))./1e4;                                                                       % microns   

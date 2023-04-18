@@ -11,10 +11,10 @@ scriptPlotting_wht;
 % filename to open
 
 % ----- November 9th data -----
-%filename = 'RF11.20081109.125700_213600.PNI.nc';
+filename = 'RF11.20081109.125700_213600.PNI.nc';
 
 % ----- November 11 data -----
-filename = 'RF12.20081111.125000_214500.PNI.nc';
+%filename = 'RF12.20081111.125000_214500.PNI.nc';
 
 % load vocals rex data
 vr = readVocalsRex(filename);
