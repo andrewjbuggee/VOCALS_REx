@@ -2,7 +2,31 @@
 % Save these vertical profiles
 
 
-function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex)
+% INPUTS:
+% -------
+%       (1) vocals-rex data set
+
+%       (2) LWC_threshold - (g/m^3) this is a threshold that helps clean
+%       the data. If set to 0, the vertical profiles will have values on
+%       either end of the true vertical droplet profile that represent
+%       measurements outside of what we want. the LWC_threshold can help
+%       clean the data by limiting the data to have a certain liquid water
+%       content threshold. For example. Painemal and Zuidema (2011) defined
+%       the cloud top boundary as the level where the LWC was 0.03 g/m^3.
+%       Beyond this, the excluded the data. This value will be used to
+%       truncate data before and after the vertical profile.
+
+%       (3) stop_at_max_lwc - this is a logical flag, whose values can either
+%       be true or false. If true, each vertical profile found will be
+%       truncated at the peak value of the liquid water content. Most
+%       vertical droplet profiles will have a LWC that grows with altitude.
+%       If this is true, the profile usually peters out shortly after the
+%       peak LWC value. IF this is false, the data will be kept until the
+%       the LWC is below the LWC threshold defined above.
+
+
+
+function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_lwc)
 
 
 % Let's also store the time vector in UTC format
@@ -111,18 +135,18 @@ vert_profs.LWB(index2delete) = [];
 % all 0 values at the end of the vector ONLY when all remaining values are
 % 0
 
-for ii = 1:length(vert_profs.Nc)
-
-
-
-    % -----------------------------------------------------------------------
-    % find the point where all remaining values are zero and truncate
-    % -----------------------------------------------------------------------
-
-
-
-    
-end
+% for ii = 1:length(vert_profs.Nc)
+% 
+% 
+% 
+%     % -----------------------------------------------------------------------
+%     % find the point where all remaining values are zero and truncate
+%     % -----------------------------------------------------------------------
+% 
+% 
+% 
+%     
+% end
 
 
 
@@ -132,19 +156,36 @@ end
 % Now sort through the vertical profiles and get rid of Data points where
 % the LWC is below some threshold
 
-LWC_threshold = 0;                              % g/m^3
+%LWC_threshold = 0;                              % g/m^3
 
-
-
+% zero vector incase it is needed below
+max_lwc = zeros(1, length(vert_profs.lwc));
 
 for ii = 1:length(vert_profs.lwc)
 
-    index2delete = [];
+
+    if stop_at_max_lwc == false
 
     % Find data points where the threshold is less than this and delete
-    % those values
-    
-    index2delete = vert_profs.lwc{ii}<LWC_threshold;
+        % those values
+        
+        index2delete = vert_profs.lwc{ii}<LWC_threshold;
+
+    else
+        % find the max LWC and the index associated with this value
+        [max_lwc(ii), index_max] = max(vert_profs.lwc{ii});
+        index_max_2End = (index_max+1):numel(vert_profs.lwc{ii});
+
+
+        index2delete = vert_profs.lwc{ii}<LWC_threshold;
+
+        % allow indices beyond the max LWC are set to true, and thus are
+        % deleted
+        index2delete(index_max_2End) = true;
+
+    end
+
+
 
     % delete all time-stamped data that meet the above logical statement
 
@@ -165,6 +206,30 @@ for ii = 1:length(vert_profs.lwc)
 end
 
 
+% If the max LWC content found is below the LWC threshold, the vertical
+% profile will be an empty vector, and we should delete it
+
+find_max_less_than_threshold = max_lwc<LWC_threshold;
+
+% if this is true, delete all entries for the index
+if sum(find_max_less_than_threshold)>0
+        
+    % delete all time-stamped data that meet the above logical statement
+
+    vert_profs.Nc(find_max_less_than_threshold) = [];
+    vert_profs.time(find_max_less_than_threshold) = [];
+    vert_profs.time_UTC(find_max_less_than_threshold) = [];
+    vert_profs.lwc(find_max_less_than_threshold) = [];
+    vert_profs.latitude(find_max_less_than_threshold) = [];
+    vert_profs.longitude(find_max_less_than_threshold) = [];
+    vert_profs.altitude(find_max_less_than_threshold) = [];
+    vert_profs.re(find_max_less_than_threshold) = [];
+    vert_profs.SWT(find_max_less_than_threshold) = [];
+    vert_profs.SWB(find_max_less_than_threshold) = [];
+    vert_profs.LWT(find_max_less_than_threshold) = [];
+    vert_profs.LWB(find_max_less_than_threshold) = [];
+
+end
 
 
 
