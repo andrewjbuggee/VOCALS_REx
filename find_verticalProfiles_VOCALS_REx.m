@@ -161,7 +161,11 @@ vert_profs.LWB(index2delete) = [];
 % zero vector incase it is needed below
 max_lwc = zeros(1, length(vert_profs.lwc));
 
+
 for ii = 1:length(vert_profs.lwc)
+
+    % find the max LWC and the index associated with this value
+    [max_lwc(ii), index_max] = max(vert_profs.lwc{ii});
 
 
     if stop_at_max_lwc == false
@@ -172,8 +176,7 @@ for ii = 1:length(vert_profs.lwc)
         index2delete = vert_profs.lwc{ii}<LWC_threshold;
 
     else
-        % find the max LWC and the index associated with this value
-        [max_lwc(ii), index_max] = max(vert_profs.lwc{ii});
+
         index_max_2End = (index_max+1):numel(vert_profs.lwc{ii});
 
 
@@ -230,6 +233,8 @@ if sum(find_max_less_than_threshold)>0
     vert_profs.LWB(find_max_less_than_threshold) = [];
 
 end
+
+
 
 
 

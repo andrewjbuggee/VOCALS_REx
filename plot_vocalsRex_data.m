@@ -1,13 +1,20 @@
 %% Load some VOCALS-REx Data
 
 % Oct-18-2008 Data
-filename = 'RF02.20081018.130300_213000.PNI.nc';
+%filename = 'RF02.20081018.130300_213000.PNI.nc';
 
+% November 11, 2008 data
+%filename = 'RF12.20081111.125000_214500.PNI.nc';
+
+
+% ----- November 9 data -----
+foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_09/';
+filename = 'RF11.20081109.125700_213600.PNI.nc';
 
 
 
 % Load data
-vocalsRex = readVocalsRex(filename);
+vocalsRex = readVocalsRex([foldername,filename]);
 
 %% Plot the VOCALS-REx flight path
 
@@ -419,8 +426,11 @@ set(gcf, 'Position',[0 0 1300, 450])
 %% Plot droplet distribution at the base of some vert profile
 
 % Plot one distribuiton at the bottom of the cloud
-vocals_time1 = 5916-1;
-index_time1 = vocalsRex.time==vocals_time1;
+index_time1 = vert_profs.time{1}(1);
+
+% plot another distribution at the top of the cloud
+index_time2 = vert_profs.time{1}(end);
+
 
 figure;
 h = histogram('BinEdges',vocalsRex.drop_radius_bin_edges ,'BinCounts',vocalsRex.Nc(:,index_time1)); 
@@ -442,9 +452,9 @@ re1 = 1e4 * sum((vocalsRex.drop_radius_bin_center*1e-4).^3 .* vocalsRex.Nc(:,ind
 xline(re1,'k--', 'LineWidth',2)
 
 
-% plot another distribution at the top of the cloud
-vocals_time2 = 5964-1;
-index_time2 = vocalsRex.time==vocals_time2;
+
+
+% plot the other distribution
 
 figure;
 h = histogram('BinEdges',vocalsRex.drop_radius_bin_edges ,'BinCounts',vocalsRex.Nc(:,index_time2)); 
@@ -467,10 +477,38 @@ xline(re2,'k--', 'LineWidth',2)
 
 
 
-% Plot both of them on the same figure!
+
+
+%% Plot histogram of two droplet distributions on the same figure!
+
+% Define the min and max radius values to plot
+r_min = 0;      % microns
+r_max = 30;     % microns
+
+% vert_profile to plot
+index_2plot = 2;
+
+% plot a distribution at the top of the cloud
+index_time1 = vert_profs.time{index_2plot}(1)+1;
+
+
+% plot another distribution at the top of the cloud
+index_time2 = vert_profs.time{index_2plot}(end)+1;
+
+
+% Compute the effective radius for the two distributions and plot it as a solid vertical line
+re1 = vert_profs.re{index_2plot}(1);
+re2 = vert_profs.re{index_2plot}(end);
+
+% re1 = 1e4 * sum((vocalsRex.drop_radius_bin_center*1e-4).^3 .* vocalsRex.Nc(:,index_time1)')./...
+%       sum((vocalsRex.drop_radius_bin_center*1e-4).^2 .* vocalsRex.Nc(:,index_time1)');
+% re2 = 1e4 * sum((vocalsRex.drop_radius_bin_center*1e-4).^3 .* vocalsRex.Nc(:,index_time2)')./...
+%       sum((vocalsRex.drop_radius_bin_center*1e-4).^2 .* vocalsRex.Nc(:,index_time2)');
 
 
 f1 = figure;
+
+% Plot the distribution at cloud bottom first
 h1 = histogram('BinEdges',vocalsRex.drop_radius_bin_edges ,'BinCounts',vocalsRex.Nc(:,index_time1)); 
 h1.FaceColor = mySavedColors(11, 'fixed');
 h1.FaceAlpha = 0.7;
@@ -485,16 +523,16 @@ h2.EdgeAlpha = 1;
 xline(re2,'k--', 'LineWidth',4)
 
 xlabel('Droplet Radius ($\mu m$)', 'Interpreter','latex', 'FontSize',32);
-ylabel('$n(r)$ ($\mu m^{-1} \, cm^{-3}$)', 'Interpreter','latex', 'FontSize',32);
+ylabel('$n(r)$ ($cm^{-3}$)', 'Interpreter','latex', 'FontSize',32);
 grid on; grid minor; hold on;
-xlim([0,25])
+xlim([r_min, r_max])
 ylim([10^(-2) 10^2])
 set(gca, 'YScale', 'log')
 set(gcf, 'Position',[0 0 1000, 600])
 
 % Label first xline
-annotation(f1,'textbox',[0.229125 0.917777777777778 0.0911875000000002 0.0711111111111111],...
-    'String','$r_e = 4.7 \mu m$',...
+annotation(f1,'textbox',[0.209125 0.917777777777778 0.0911875000000002 0.0711111111111111],...
+    'String',['$r_e = ', num2str(re1), ' \mu m$'],...
     'Interpreter','latex',...
     'FontSize',18,...
     'FontName','Helvetica Neue',...
@@ -502,12 +540,95 @@ annotation(f1,'textbox',[0.229125 0.917777777777778 0.0911875000000002 0.0711111
     'EdgeColor','none');
 
 % Label second x line
-annotation(f1,'textbox',[0.317406250000002 0.917777777777778 0.0911875000000001 0.0711111111111111],...
-    'String','$r_e = 7.2 \mu m$',...
+annotation(f1,'textbox',[0.397406250000002 0.917777777777778 0.0911875000000001 0.0711111111111111],...
+    'String',['$r_e = ', num2str(re2), ' \mu m$'],...
     'Interpreter','latex',...
     'FontSize',18,...
     'FontName','Helvetica Neue',...
     'FitBoxToText','off',...
     'EdgeColor','none');
 
+
+legend('Cloud Bottom', '', 'Cloud Top', 'Location','best')
+
+
+%% Plot droplet number distribution versus altitude as a imagesc plot
+
+profile_idx = 1;
+
+% imagesc assumes linearly spaced vectors along the x and y axes. Use p
+% color for non-linear sampling
+
+% plot the altitude on the y-axis
+Y_data = vocalsRex.altitude(vert_profs.time{profile_idx});
+% plot the droplet sizes on the x-axis
+X_data = vocalsRex.drop_radius_bin_center;
+
+[X,Y] = meshgrid(X_data, Y_data);
+    
+figure; 
+s = pcolor(X,Y,vocalsRex.Nc(:, vert_profs.time{profile_idx})');
+
+% reduce the transparancy of the bin edges
+s.EdgeAlpha = 0;
+
+xlabel('$r$ $(\mu m)$', 'Interpreter','latex')
+ylabel('Altitude ($m$)', 'Interpreter','latex')
+c = colorbar;
+
+xlim([0 50])
+set(gca, 'YDir', 'normal')
+
+ylabel(c,'$n(r)$ $(m^{-3}$)','FontSize',25, 'interpreter', 'latex');
+
+set(gcf, 'Position', [0 0 800 600])
+
+set(gca,'ColorScale','log')
+
+set(gca,'CLim', [10^(-1) , 10^2])
+
+
+%% Plot droplet number distribution versus altitude as a imagesc plot - SMOOTHED VERSION
+
+profile_idx = 1;
+
+
+interp_r = linspace(vocalsRex.drop_radius_bin_center(1), vocalsRex.drop_radius_bin_center(end), 10000);
+
+d = zeros(size(vocalsRex.Nc(:, vert_profs.time{profile_idx})',1), numel(interp_r));
+
+for ii = 1:size(d,1)
+    d(ii,:) = interp1(vocalsRex.drop_radius_bin_center, vocalsRex.Nc(:,vert_profs.time{profile_idx}(ii))', interp_r);
+end
+
+
+% plot the altitude on the y-axis
+Y_data = vocalsRex.altitude(vert_profs.time{profile_idx});
+% plot the droplet sizes on the x-axis
+X_data = interp_r;
+
+[X,Y] = meshgrid(X_data, Y_data);
+    
+figure; 
+s = pcolor(X,Y,d);
+
+% reduce the transparancy of the bin edges
+s.EdgeAlpha = 0;
+
+
+xlabel('$r$ $(\mu m)$', 'Interpreter','latex')
+ylabel('Altitude ($m$)', 'Interpreter','latex')
+c = colorbar;
+
+xlim([0 50])
+set(gca, 'YDir', 'normal')
+
+ylabel(c,'$n(r)$ $(m^{-3}$)','FontSize',25, 'interpreter', 'latex');
+
+set(gcf, 'Position', [0 0 800 600])
+
+% Set the colorscale to be logarithmic
+set(gca,'ColorScale','log')
+
+set(gca,'CLim', [10^(-1) , 10^2])
 

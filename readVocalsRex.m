@@ -19,7 +19,9 @@ startTime = [str2double(info.Variables(1).Attributes(3).Value(26:27)),...
 % ----------- cloud droplet probe measurements (CDP) -------------
 % ----------------------------------------------------------------
 
-num_concentration_CDP = ncread(filename, 'CCDP_RWO');                                                                       % #/cm^3 - What we measure IS the number concentration for each bin! we do NOT measure the differential dN/dr
+% What we measure IS the number concentration for each bin! we do NOT measure the differential dN/dr
+
+num_concentration_CDP = ncread(filename, 'CCDP_RWO');          % #/cm^3 - number concentration for each bin
 
 % The droplet number concentration is filtered into 30 bins from 2 to 52
 % microns
@@ -52,10 +54,10 @@ num_concentration_CDP = num_concentration_CDP(first_bin_CDP:last_bin_CDP,1,:);
 % ** IMPORTANT ** The first bin of the 2DC probe overlaps with the last bin
 % of the CDP. So we ignore it. (See Painemal and Zuidema paragraph 15.)
 
-num_concentration_2DC = ncread(filename, 'C1DCA_RPC');                                             % #/L  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration! 
+num_concentration_2DC = ncread(filename, 'C1DCA_RPC');        % #/L  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration! 
 
 % convert the 2DC data to inverse cubic centimeters
-num_concentration_2DC = num_concentration_2DC ./ 1000;                                                % # of droplets/cm^3 per bin
+num_concentration_2DC = num_concentration_2DC ./ 1000;         % # of droplets/cm^3 per bin
 
 % Grab the droplet size bins
 % These are the boundaries that define each bin size
@@ -67,17 +69,17 @@ first_bin_2DC = double(info.Variables(119).Attributes(10).Value);
 last_bin_2DC = double(info.Variables(119).Attributes(11).Value);
 
 %drop_radius_bin_edges_2DC2 = drop_radius_bin_edges_2DC(first_bin_2DC:end);                                  % microns
-drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                                  % microns
-drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;                         % microns
+drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
+drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
 
 %drop_size_dist_2DC2 = drop_size_dist_2DC(first_bin_2DC:end,1,:);
 num_concentration_2DC = num_concentration_2DC(first_bin_2DC:last_bin_2DC,1,:);
 
 
 % Grab position and timing data
-lat = ncread(filename, 'LAT');                                                                                          % Meausred in degrees North
-long = ncread(filename, 'LON');                                                                                         % Meausred in degrees East
-altitude = ncread(filename, 'ALTX');                                                                                    % Measured in meters above sea level
+lat = ncread(filename, 'LAT');                                                        % Meausred in degrees North
+long = ncread(filename, 'LON');                                                       % Meausred in degrees East
+altitude = ncread(filename, 'ALTX');                                                  % Measured in meters above sea level
 
 
 % lets grab the shortwave and longwave radiance looking down and looking up
@@ -115,11 +117,12 @@ drop_radius_bin_edges = [drop_radius_bin_edges_CDP, drop_radius_bin_edges_2DC]; 
 Nc = [reshape(num_concentration_CDP,length(drop_radius_bin_center_CDP),[]); zeros(1,length(time)); reshape(num_concentration_2DC,length(drop_radius_bin_center_2DC),[])];          % Number of droplets in each bin
 %Nc2 = [reshape(drop_size_dist_CDP2,length(drop_radius_bin_edges_CDP2),[]); reshape(drop_size_dist_2DC2,length(drop_radius_bin_edges_2DC2),[])];          % Number of droplets in each bin
 
-droplet_matrix_center = repmat((drop_radius_bin_center)', 1, length(time))./1e4;                % cm                                                         % cm
+droplet_matrix_center = repmat((drop_radius_bin_center)', 1, length(time))./1e4;            % cm                                                         % cm
 %droplet_matrix_center2 = repmat((drop_radius_bin_center2)', 1, length(time));                                                                  % microns
 %droplet_matrix_firstEdge = repmat((drop_radius_bin_first_edge)', 1, length(time))./1e4;                                                        % cm
 %droplet_matrix_edges = repmat((drop_radius_bin_edges)', 1, length(time))./1e4;                                                                       % microns   
 %droplet_matrix_edges2 = repmat((drop_radius_bin_edges2)', 1, length(time))./1e4;                                                                       % microns   
+
 
 % -------------------------------------------------------------------
 % ----------- To compute efffective radius we need dN/dr ------------
