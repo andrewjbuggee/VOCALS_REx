@@ -11,6 +11,8 @@ function [] = plot_LWC_and_re_and_Nc_vs_altitude(vert_profiles, indices)
 
 N_cuvres = length(indices);
 
+legend_str = cell(1, N_cuvres);
+
 figure;
 for nn = 1:N_cuvres
     
@@ -26,6 +28,8 @@ for nn = 1:N_cuvres
     subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, vert_profiles.altitude{indices(nn)}); 
     hold on
 
+    legend_str{nn} = ['idx = ', num2str(indices(nn))];
+
 
 end
 
@@ -34,6 +38,10 @@ subplot(1,3,1)
 grid on; grid minor; 
 xlabel('LWC ($g/m^3$)', 'Interpreter','latex');
 ylabel('Altitude ($m$)', 'Interpreter','latex');
+
+% in the first subplot, define the indices being plotted
+legend(legend_str, 'Interpreter','latex', 'Location','best')
+
 
 
 subplot(1,3,2)

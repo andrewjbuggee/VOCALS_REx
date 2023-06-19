@@ -3,7 +3,7 @@
 % by Andrew John Buggee
 %%
 
-function [] = plot_vocalsRex_vertProfs_dropletDistribution_vs_altitude(vocalsRex, vert_profs, index2plot, dist_name)
+function [] = plot_vertProfs_dropletDistributionVariance_vs_altitude(vocalsRex, vert_profs, index2plot, dist_name)
 
 % how many vertical profiles do you wish to plot?
 
