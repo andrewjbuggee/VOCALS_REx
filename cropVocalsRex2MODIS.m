@@ -1,6 +1,6 @@
 
 
-function vocalsRex = cropVocalsRex2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, modis,vocalsRexFolder,modisFolder)
+function vocalsRex = cropVocalsRex2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, modis)
 
 
 % ----- Find all vertical profiles within VOCALS-REx data ------
@@ -49,6 +49,13 @@ end
 
 % Convert back to a structure and keep the data closest in time to MODIS
 vocalsRex = cell2struct(data2keep, fields, 2);
+
+
+% Find the MODIS pixel closest to the vocalsRex data
+dist_btwn_VR_startTime_and_MODIS = sqrt((double(modis.geo.lat) - median(vocalsRex.latitude)).^2 + (double(modis.geo.long) - median(vocalsRex.longitude)).^2); 
+[~, index_minDist] = min(dist_btwn_VR_startTime_and_MODIS, [], 'all');
+% save this index so we know what MODIs pixel to use in comparison
+vocalsRex.modisIndex_minDist = index_minDist;
 
 
 

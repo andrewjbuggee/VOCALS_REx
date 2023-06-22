@@ -12,7 +12,7 @@ folderName2Save = inputs.savedCalculations_folderName; % where to save the indic
 liquidWater_mask = modis.cloud.phase == 2;
 
 % create tau mask based on threshold
-tauThreshold = inputs.pixels.tauThreshold;
+tauThreshold = inputs.pixels.tau_min_threshold;
 %tauThreshold = 0;
 
 % finds clouds with an optical thickness of a certain value and an
@@ -24,7 +24,7 @@ uncertaintyLimit = 10;                              % percentage
 % profile chosen within vocals-Rex matches these requirements
 index2check = vocalsRex.modisIndex_minDist;
 
-if liquidWater_mask(index2check)==true && modis.cloud.optThickness17(index2check)>=tauThreshold
+if liquidWater_mask(index2check)==true && modis.cloud.optThickness17(index2check)>=tauThreshold && modis.cloud.effRad_uncert_17(index2check)<uncertaintyLimit
 
 else
     error([newline,'The MODIS pixel chosen for comparison with the VOCALS-REx measurement is incompatible',newline,...

@@ -85,9 +85,9 @@ for ii = 1:length(index_consec)-1
 end
 
 % Grab the non-time-stamped data as well
-    vert_profs.drop_radius_bin_edges = vocalsRex.drop_radius_bin_edges;
-    vert_profs.drop_radius_bin_center = vocalsRex.drop_radius_bin_center;
-    vert_profs.startTime = vocalsRex.startTime;                                                                    % We have to assume that this is in UTC time as well
+vert_profs.drop_radius_bin_edges = vocalsRex.drop_radius_bin_edges;
+vert_profs.drop_radius_bin_center = vocalsRex.drop_radius_bin_center;
+vert_profs.startTime = vocalsRex.startTime;                                                                    % We have to assume that this is in UTC time as well
 
 
 
