@@ -1629,7 +1629,7 @@ figure; plot(var_coef, vert_profs.altitude{index2plot})
 hold on
 plot(sigma_fit, vert_profs.altitude{index2plot})
 
-grid on; grid minor 
+grid on; grid minor
 xlabel('$r$ $(\mu m)$', 'Interpreter','latex')
 ylabel('$n(r)$ $(cm^{-3} \mu m^{-3})$', 'Interpreter','latex')
 legend('VOCALS',['Manual, \mu = ', num2str(std_dev)], ['gamma fit, \mu = ', num2str(mu_fit)],...
@@ -1665,10 +1665,15 @@ Nc = vert_profs.Nc{index2plot}(time2plot);       % cm^(-3)
 %gamma_fit = fitdist(r, 'gamma', 'Frequency', nr_data);
 % logNormal_fit = fitdist(r, 'Lognormal', 'Frequency', nr_data);
 
-gamma_fit = fitdist(nr_data, 'gamma');
+%gamma_fit = fitdist(nr_data, 'gamma');
 % logNormal_fit = fitdist(nr_data, 'Lognormal');
 
 %gamma_fit = makedist("Gamma","a",r_modal, "b", sigma0);
+
+% make a gamma distribution using Kokhavonvsky
+[nr_gamma, r_gamma] = gamma_size_distribution_kokhanovsky(r_modal, 23, Nc);
+
+[nr_fit, fit_params] = fit_gamma_size_distribution_kokhanovsky(nr_data, r);
 
 % plot the data and all the distributions
 
@@ -1679,11 +1684,20 @@ ylabel('n(r)')
 grid on; grid minor
 
 hold on
-plot(r, Nc*pdf(gamma_fit, r));
+xline(vert_profs.re{index2plot}(time2plot), 'k--', 'Label','r_e','LineWidth',3, ...
+    'FontSize',15)
+
+%plot(r, Nc*pdf(gamma_fit, r));
 
 %plot(r, pdf(logNormal_fit, r));
 
-legend('data','gamma fit','log normal fit')
+% plot the manual gamma distribution fit
+plot(r_gamma, nr_gamma);
+
+% plot the algorithmic gamma distribution fit
+plot(r, nr_fit);
+
+legend('data', 'r_e', 'gamma fit - manual', 'gamma fit - algorithm')
 
 
 
