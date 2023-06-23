@@ -1642,7 +1642,7 @@ min_nr_value = 10^(-3);
 r = double(vocalsRex.drop_radius_bin_center)';
 
 index2plot = 1;
-time2plot = 10;
+time2plot = 49;
 
 % read in the number concentration data
 % add 1 index when reading the Vocals rex data because the vocalsRex time
@@ -1671,7 +1671,7 @@ Nc = vert_profs.Nc{index2plot}(time2plot);       % cm^(-3)
 %gamma_fit = makedist("Gamma","a",r_modal, "b", sigma0);
 
 % make a gamma distribution using Kokhavonvsky
-[nr_gamma, r_gamma] = gamma_size_distribution_kokhanovsky(r_modal, 23, Nc);
+[nr_gamma, r_gamma] = gamma_size_distribution_kokhanovsky(r_modal, 110, Nc);
 
 [nr_fit, fit_params] = fit_gamma_size_distribution_kokhanovsky(nr_data, r);
 
@@ -1890,3 +1890,54 @@ ylabel('n(r)')
 grid on; grid minor
 title('Matlabs Lognormal distribution')
 legend(legend_str)
+
+
+%% Plot the modal radius versus the effective radius
+
+
+min_nr_value = 10^(-3);
+
+r0 = double(vocalsRex.drop_radius_bin_center)';
+
+index2plot = 1;
+
+
+
+for nn = 1:numel(index2plot) 
+
+    for mm = 1:numel(vert_profs.time{index2plot(nn)})
+
+        % read in the number concentration data
+        % add 1 index when reading the Vocals rex data because the vocalsRex time
+        % starts at 0
+        Nc_data = vocalsRex.Nc(:, vert_profs.time{index2plot(nn)}(mm)+1);     % cm^(-3) - total number of droplets between some radius range
+        
+        nr_data = Nc_data./diff(vocalsRex.drop_radius_bin_edges)';               % cm^(-3) * microns^(-1) - droplet distribution data
+        
+        r = r0(nr_data>min_nr_value);
+        nr_data = nr_data(nr_data>min_nr_value);
+
+        [~, fit_parameters(nn,mm)] = fit_gamma_size_distribution_kokhanovsky(nr_data, r);
+
+    end
+end
+
+
+% plot the results
+ figure; 
+ for ii=1:numel(vert_profs.time{index2plot})
+    plot(fit_parameters(ii).r_modal./vert_profs.re{index2plot}(ii), vert_profs.altitude{index2plot}(ii) ,'.')
+    hold on
+ end
+ xlabel('r_{modal}/r_e')
+ ylabel('Altitude (m)')
+ grid on; grid minor
+
+
+  figure; 
+ for ii=1:numel(vert_profs.time{index2plot})
+    plot(fit_parameters(ii).mu, vert_profs.altitude{index2plot}(ii) ,'.')
+    hold on
+ end
+ xlabel('\mu (variance of sorts)')
+ ylabel('Altitude (m)')
