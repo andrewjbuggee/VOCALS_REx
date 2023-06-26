@@ -7,7 +7,13 @@
 % By Andrew John Buggee
 %%
 
-function [] = plot_LWC_and_re_and_Nc_vs_opticalDepth(vert_profiles, indices, normalize)
+function [] = plot_LWC_and_re_and_Nc_vs_opticalDepth(vert_profiles, indices, normalize_opticalDepth)
+
+% Check to make sure there are 3 inputs
+
+if nargin~=3
+    error([newline,'Wrong number of inputs. Need 3: vertical profiles, indices to plot, normalization flag', newline])
+end
 
 % define the denisty of liquid water
 density = 1e6;          % g/m^3
@@ -59,22 +65,50 @@ if N_curves<4
         % the tau vector goes from the largest values to 0
 
 
-        subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, tau)
-        hold on
 
-        % next plot the effective radius
-        subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
-        hold on
+        % if normalize optical depth is true, all altitude vectors will be
+        % normalized between 0 and 1
 
-        % Finally, plot the total droplet number concentration
-        subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, tau);
-        hold on
+        if normalize_opticalDepth==true
+
+            norm_tau = tau./tau(1);
+
+            subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, norm_tau)
+            hold on
+
+            % next plot the effective radius
+            subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
+            hold on
+
+            % Finally, plot the total droplet number concentration
+            subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, norm_tau);
+            hold on
+
+
+        else
+
+
+
+            subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, tau)
+            hold on
+
+            % next plot the effective radius
+            subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
+            hold on
+
+            % Finally, plot the total droplet number concentration
+            subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, tau);
+            hold on
+
+        end
+
 
 
     end
 
-else
 
+else
+    % if there is more than 3 curves, let's make them transparent
     % Make all of the curves semi transparent
     for nn = 1:N_curves
 
@@ -114,23 +148,53 @@ else
         % Because the data is oriented by values at the cloud bottom first
         % the tau vector goes from the largest values to 0
 
+        % if normalize optical depth is true, all altitude vectors will be
+        % normalized between 0 and 1
 
-        subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, tau);
-        % Set the transparency to 50%
-        l.Color(4) = 0.5;
-        hold on
+        if normalize_opticalDepth==true
 
-        % next plot the effective radius
-        subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, tau);
-        % Set the transparency to 50%
-        l.Color(4) = 0.5;
-        hold on
+            norm_tau = tau./tau(1);
 
-        % Finally, plot the total droplet number concentration
-        subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, tau);
-        % Set the transparency to 50%
-        l.Color(4) = 0.5;
-        hold on
+            subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, norm_tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+            % next plot the effective radius
+            subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, norm_tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+            % Finally, plot the total droplet number concentration
+            subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, norm_tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+
+
+        else
+
+
+            subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+            % next plot the effective radius
+            subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+            % Finally, plot the total droplet number concentration
+            subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, tau);
+            % Set the transparency to 50%
+            l.Color(4) = 0.5;
+            hold on
+
+        end
 
 
     end
@@ -150,6 +214,8 @@ subplot(1,3,2)
 set(gca, 'ydir', 'reverse')
 grid on; grid minor;
 xlabel('$r_e$ ($\mu m$)', 'Interpreter','latex')
+% include a title in the middle plot
+title(['LWC $\geq$ ', num2str(vert_profiles.lwc_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
 
 
 subplot(1,3,3)

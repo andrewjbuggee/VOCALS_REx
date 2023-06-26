@@ -1941,3 +1941,4 @@ end
  end
  xlabel('\mu (variance of sorts)')
  ylabel('Altitude (m)')
+ grid on; grid minor
