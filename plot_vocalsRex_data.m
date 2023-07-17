@@ -16,6 +16,11 @@ filename = 'RF11.20081109.125700_213600.PNI.nc';
 % Load data
 vocalsRex = readVocalsRex([foldername,filename]);
 
+% find vertical profiles
+LWC_threshold = 0.03;
+stop_at_max_LWC = false;
+vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC);
+
 %% Plot the VOCALS-REx flight path
 
 % Plot MODIS measured relfectance at 650nm with VOCALS flight path
@@ -1945,3 +1950,81 @@ ylabel('Altitude (m)')
 grid on; grid minor
 
 set(gcf, 'Position',[0 0 1000 500])
+
+
+%% plot a vertical profile histogram and a distribution fit
+
+% Define the min and max radius values to plot
+r_min = 0;      % microns
+r_max = 30;     % microns
+
+% define minimum number of droplet density
+min_density = 10^(-1);
+max_density = 10^2;
+
+index2plot = 1;                                         % plot the first profile
+time2plot = size(vert_profs.nr{index2plot}, 2);         % plot the cloud top 
+
+data2plot = vert_profs.nr{index2plot}(:,time2plot);
+% get rid of values below the minimum density threshold
+data2plot = data2plot(data2plot>min_density);
+
+independent_data2plot = vert_profs.drop_radius_bin_center;
+% only keep the same values from above
+independent_data2plot = independent_data2plot(data2plot>min_density);
+
+% compute the total number of droplets
+N0 = vert_profs.Nc{index2plot}(time2plot);
+
+
+
+
+
+% Fit a log noraml distribution using my function
+[log_norm_fit, fit_params] = fit_lognormal_size_distribution_kokhanovsky(data2plot,independent_data2plot);
+
+
+% fit a log normal distribution using Matlabs built in function
+logNormal_fit = fitdist(data2plot, 'Lognormal');
+
+% fit a normal distribution using Matlabs built in function
+normal_fit = fit(independent_dataplot, data2plot, 'gauss1');
+
+% plot the results
+
+figure;
+% Plot the distribution at cloud bottom first
+h1 = histogram('BinEdges',vert_profs.drop_radius_bin_edges ,'BinCounts',...
+    vert_profs.nr{index2plot}(:,time2plot));
+h1.FaceColor = mySavedColors(1, 'fixed');
+h1.FaceAlpha = 0.7;
+h1.EdgeAlpha = 1;
+hold on
+
+% what profile are we plotting?
+title(['Vertical Profile ', num2str(index2plot)], 'Interpreter','latex')
+
+% set axes limits and labels
+xlabel('Droplet Radius ($\mu m$)', 'Interpreter','latex', 'FontSize',32);
+ylabel('$n(r)$ ($cm^{-3} \, \mu m^{-1}$)', 'Interpreter','latex', 'FontSize',32);
+grid on; grid minor; hold on;
+xlim([r_min, r_max])
+ylim([min_density max_density])
+set(gca, 'YScale', 'log')
+set(gcf, 'Position',[0 0 1000, 600])
+
+
+% Plot the log noraml distribution fit using my function
+hold on
+plot(independent_data2plot, log_norm_fit)
+
+% plot Matlab's lognormal distribution fit  
+plot(independent_data2plot, pdf(logNormal_fit, independent_data2plot));
+
+
+% plot a lognormal distribution 
+hold on
+[log_norm_dist, r] = lognormal_size_distribution_kokhanovsky(8, 0.2, N0);
+plot(r, log_norm_dist)
+
+legend('n(r)', 'my lognoraml fit','MATLAB lognoraml fit','lognormal dist')

@@ -61,7 +61,7 @@ for nn = 1:length(indexes2plot)
 
     % set axes limits and labels
     xlabel('Droplet Radius ($\mu m$)', 'Interpreter','latex', 'FontSize',32);
-    ylabel('$n(r)$ ($cm^{-3}$)', 'Interpreter','latex', 'FontSize',32);
+    ylabel('$n(r)$ ($cm^{-3} \, \mu m^{-1}$)', 'Interpreter','latex', 'FontSize',32);
     grid on; grid minor; hold on;
     xlim([r_min, r_max])
     ylim([10^(-2) 10^2])
