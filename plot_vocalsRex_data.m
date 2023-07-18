@@ -1965,13 +1965,18 @@ max_density = 10^2;
 index2plot = 1;                                         % plot the first profile
 time2plot = size(vert_profs.nr{index2plot}, 2);         % plot the cloud top 
 
+% define the data used for fitting
 data2plot = vert_profs.nr{index2plot}(:,time2plot);
 % get rid of values below the minimum density threshold
-data2plot = data2plot(data2plot>min_density);
+idx2plot = data2plot>min_density;
+data2plot = data2plot(idx2plot);
 
 independent_data2plot = vert_profs.drop_radius_bin_center;
 % only keep the same values from above
-independent_data2plot = independent_data2plot(data2plot>min_density);
+independent_data2plot = independent_data2plot(idx2plot);
+% grab the bin edges to plot
+idx2plot_num = find(idx2plot);
+binEdges2plot = vert_profs.drop_radius_bin_edges([idx2plot_num; idx2plot_num(end)+1]);      
 
 % compute the total number of droplets
 N0 = vert_profs.Nc{index2plot}(time2plot);
@@ -1988,14 +1993,18 @@ N0 = vert_profs.Nc{index2plot}(time2plot);
 logNormal_fit = fitdist(data2plot, 'Lognormal');
 
 % fit a normal distribution using Matlabs built in function
-normal_fit = fit(independent_dataplot, data2plot, 'gauss1');
+% first, lets define the gaussian equation
+normEqn = 'a*exp(-((x-b)/c)^2)+d';
+% define the first guesses for each variable in the above equation
+[max_val, idx_maxVal] = max(data2plot);
+start_points = [max_val, independent_data2plot(idx_maxVal), 1, 0];
+[normal_fit, gof] = fit(independent_data2plot', data2plot, normEqn, 'StartPoint', start_points);
 
 % plot the results
 
 figure;
 % Plot the distribution at cloud bottom first
-h1 = histogram('BinEdges',vert_profs.drop_radius_bin_edges ,'BinCounts',...
-    vert_profs.nr{index2plot}(:,time2plot));
+h1 = histogram('BinEdges',binEdges2plot ,'BinCounts',data2plot);
 h1.FaceColor = mySavedColors(1, 'fixed');
 h1.FaceAlpha = 0.7;
 h1.EdgeAlpha = 1;
@@ -2010,7 +2019,7 @@ ylabel('$n(r)$ ($cm^{-3} \, \mu m^{-1}$)', 'Interpreter','latex', 'FontSize',32)
 grid on; grid minor; hold on;
 xlim([r_min, r_max])
 ylim([min_density max_density])
-set(gca, 'YScale', 'log')
+%set(gca, 'YScale', 'log')
 set(gcf, 'Position',[0 0 1000, 600])
 
 
@@ -2022,9 +2031,14 @@ plot(independent_data2plot, log_norm_fit)
 plot(independent_data2plot, pdf(logNormal_fit, independent_data2plot));
 
 
-% plot a lognormal distribution 
+% plot a random lognormal distribution 
 hold on
 [log_norm_dist, r] = lognormal_size_distribution_kokhanovsky(8, 0.2, N0);
 plot(r, log_norm_dist)
 
-legend('n(r)', 'my lognoraml fit','MATLAB lognoraml fit','lognormal dist')
+
+% plot a normal distribution 
+hold on
+plot(independent_data2plot(1):0.01:independent_data2plot(end), normal_fit(independent_data2plot(1):0.01:independent_data2plot(end)))
+
+legend('n(r)', 'my lognoraml fit','MATLAB lognoraml fit','lognormal dist', 'normal dist')
