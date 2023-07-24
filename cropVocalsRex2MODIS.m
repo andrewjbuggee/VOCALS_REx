@@ -51,15 +51,56 @@ end
 vocalsRex = cell2struct(data2keep, fields, 2);
 
 
-% Find the MODIS pixel closest to the vocalsRex data
+% Find the MODIS pixel closest to the vocalsRex data by using the median of
+% the VOCALS-REx latitude and longitude
 dist_btwn_VR_startTime_and_MODIS = sqrt((double(modis.geo.lat) - median(vocalsRex.latitude)).^2 + (double(modis.geo.long) - median(vocalsRex.longitude)).^2); 
 [~, index_minDist] = min(dist_btwn_VR_startTime_and_MODIS, [], 'all');
 % save this index so we know what MODIs pixel to use in comparison
-vocalsRex.modisIndex_minDist = index_minDist;
+vocalsRex.modisIndex_minDist_median = index_minDist;
+
+
+% Find the MODIS pixel closest to the vocalsRex data by using the first
+% latitude and longitude point of the vertical profile
+dist_btwn_VR_startTime_and_MODIS = sqrt((double(modis.geo.lat) - (vocalsRex.latitude(1))).^2 + (double(modis.geo.long) - (vocalsRex.longitude(1))).^2); 
+[~, index_minDist] = min(dist_btwn_VR_startTime_and_MODIS, [], 'all');
+% save this index so we know what MODIs pixel to use in comparison
+vocalsRex.modisIndex_minDist_first = index_minDist;
+
+
+% Find the MODIS pixel closest to the vocalsRex data by using the last
+% latitude and longitude point of the vertical profile
+dist_btwn_VR_startTime_and_MODIS = sqrt((double(modis.geo.lat) - (vocalsRex.latitude(end))).^2 + (double(modis.geo.long) - (vocalsRex.longitude(end))).^2); 
+[~, index_minDist] = min(dist_btwn_VR_startTime_and_MODIS, [], 'all');
+% save this index so we know what MODIs pixel to use in comparison
+vocalsRex.modisIndex_minDist_last = index_minDist;
 
 
 
+% ---- Check to see if all 3 indices are unique. If not, delete the
+% redundancy
 
+[~, idx_unique] = unique([vocalsRex.modisIndex_minDist_first, vocalsRex.modisIndex_minDist_median, vocalsRex.modisIndex_minDist_last]);
+idx_unique_logic = ismember([1,2,3], idx_unique);
+
+% delete the indices that are not found above
+
+
+if idx_unique_logic(1)==false
+    
+    % set an empty array
+    vocalsRex.modisIndex_minDist_first = [];
+
+elseif idx_unique_logic(2)==false
+    
+    % set an empty array
+    vocalsRex.modisIndex_minDist_median = [];
+
+elseif idx_unique_logic(3)==false
+    
+    % set an empty array
+    vocalsRex.modisIndex_minDist_last = [];
+
+end
 
 
 

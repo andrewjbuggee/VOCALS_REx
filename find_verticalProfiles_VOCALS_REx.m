@@ -199,6 +199,12 @@ for ii = 1:length(vert_profs.lwc)
     if stop_at_max_lwc == true
 
 
+        if sum(indexes2keep)==0
+
+            % do nothing if this is true. The values will simply be set to
+            % zero.
+
+        else
 
         % The data will start at the first index above the minimum
         % threshold, found above, and end at the index of maximum LWC,
@@ -215,6 +221,9 @@ for ii = 1:length(vert_profs.lwc)
         %         % allow indices beyond the max LWC are set to true, and thus are
         %         % deleted
         %         index2delete(index_max_2End) = true;
+
+        end
+
 
     end
 
@@ -295,6 +304,85 @@ end
 
 % Store the LWC threshold used
 vert_profs.lwc_threshold = LWC_threshold;            % g/m^3
+
+
+
+
+% ------------------------------------------------------------------
+% ------------------ Compute optical depth -------------------------
+% ------------------------------------------------------------------
+
+% compute the optical depth for each vertical profile and store it
+
+
+% optical depth is defined to be 0 at cloud top and increasing towards
+% cloud bottom
+
+% if there is more than one profile, the data will be stored in a cell
+% array
+if iscell(vert_profs.altitude)==true
+
+    num_profiles = length(vert_profs.altitude);
+    
+    
+    % step through each profile
+    for nn = 1:num_profiles
+        
+        
+        vector_length = length(vert_profs.altitude{nn});
+        vert_profs.tau{nn} = zeros(1,vector_length-1);
+
+
+        % step through the altitude array
+        for ii = 1:vector_length-1
+            
+            % we have to convert Nc and re to have the same units as the alitude,
+            % which is in meters
+            re_meters = vert_profs.re{nn}(vector_length-ii:vector_length)./1e6;                                   % meters
+            total_Nc_meters = vert_profs.Nc{nn}(vector_length-ii:vector_length).*1e6;                           % #/m^3
+            altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length);
+            % we need to flip these vectors so we start integratin at the cloud
+            % top!
+            vert_profs.tau{nn}(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
+        
+        end
+
+        % add a zero at the begining!
+        vert_profs.tau{nn} = [0,vert_profs.tau{nn}];
+
+    end
+
+else
+
+    % if vocalsRex is not a cell, then there is only one profile
+
+        vector_length = length(vert_profs.altitude);
+        vert_profs.tau = zeros(1,vector_length-1);
+
+
+        % step through the altitude array
+        for ii = 1:vector_length-1
+            
+            % we have to convert Nc and re to have the same units as the alitude,
+            % which is in meters
+            re_meters = vert_profs.re(vector_length-ii:vector_length)./1e6;                                   % meters
+            total_Nc_meters = vert_profs.Nc(vector_length-ii:vector_length).*1e6;                           % #/m^3
+            altitude = vert_profs.altitude(end) -  vert_profs.altitude(vector_length-ii:vector_length);
+            % we need to flip these vectors so we start integratin at the cloud
+            % top!
+            vert_profs.tau(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
+        
+        end
+
+        % add a zero at the begining!
+        vert_profs.tau = [0,vert_profs.tau];
+
+
+end
+
+
+
+
 
 
 

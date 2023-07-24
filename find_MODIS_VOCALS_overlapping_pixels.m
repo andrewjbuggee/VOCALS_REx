@@ -22,13 +22,18 @@ uncertaintyLimit = 10;                              % percentage
 
 % Let's check to see that the MODIS data that coincides with the cloud
 % profile chosen within vocals-Rex matches these requirements
-index2check = vocalsRex.modisIndex_minDist;
+indexes2check = [vocalsRex.modisIndex_minDist_first, vocalsRex.modisIndex_minDist_median, vocalsRex.modisIndex_minDist_last];
 
-if liquidWater_mask(index2check)==true && modis.cloud.optThickness17(index2check)>=tauThreshold && modis.cloud.effRad_uncert_17(index2check)<uncertaintyLimit
+for nn = 1:numel(indexes2check)
 
-else
-    error([newline,'The MODIS pixel chosen for comparison with the VOCALS-REx measurement is incompatible',newline,...
-        'Either this pixel didnt detect liquid water, or it didnt surpass the tau threshold',newline])
+
+    if liquidWater_mask(indexes2check(nn))==true && modis.cloud.optThickness17(indexes2check(nn))>=tauThreshold && modis.cloud.effRad_uncert_17(indexes2check(nn))<uncertaintyLimit
+
+    else
+        error([newline,'The MODIS pixel chosen for comparison with the VOCALS-REx measurement is incompatible',newline,...
+            'Either this pixel didnt detect liquid water, or it didnt surpass the tau threshold',newline])
+
+    end
 
 end
 
@@ -74,7 +79,7 @@ end
 
 
 % store the linear index, the rows and the columns
-pixels2use.res1km.linearIndex = index2check;
+pixels2use.res1km.linearIndex = indexes2check;
 
 [pixels2use.res1km.row, pixels2use.res1km.col] = ind2sub(size(modis.geo.lat), pixels2use.res1km.linearIndex);
     
