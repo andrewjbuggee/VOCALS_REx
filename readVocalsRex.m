@@ -27,15 +27,18 @@ num_concentration_CDP = ncread(filename, 'CCDP_RWO');          % #/cm^3 - number
 % microns
 % Below 20 microns, the bins are spaced by 1.18 microns
 % above 22 microns, the bins are spaced by 2.28 microns
-drop_radius_bin_edges_CDP = info.Variables(120).Attributes(10).Value./2;                        % microns
+% find the variable information for the droplet concentration data
+CCDP_RWO_info = ncinfo(filename, 'CCDP_RWO');
+
+% Bins are defined as diameters. Divide by 2 to get the radius
+drop_radius_bin_edges_CDP = double(CCDP_RWO_info.Attributes(10).Value./2);                        % microns
 
 % The data tells us which bins to take
-first_bin_CDP = info.Variables(120).Attributes(8).Value;
-last_bin_CDP = info.Variables(120).Attributes(9).Value;
+first_bin_CDP = CCDP_RWO_info.Attributes(8).Value;
+last_bin_CDP = CCDP_RWO_info.Attributes(9).Value;
 
 % There are 2 edges for each measurement
-%drop_radius_bin_edges_CDP2 = drop_radius_bin_edges_CDP;                                  % microns
-% Bins are defined as diameters. Divide by 2 to get the radius
+%
 drop_radius_bin_edges_CDP = drop_radius_bin_edges_CDP(first_bin_CDP:last_bin_CDP+1);                                  % microns
 drop_radius_bin_center_CDP = drop_radius_bin_edges_CDP(1:end-1) + diff(drop_radius_bin_edges_CDP)/2;
 
@@ -59,14 +62,17 @@ num_concentration_2DC = ncread(filename, 'C1DCA_RPC');        % #/L  - where I t
 % convert the 2DC data to inverse cubic centimeters
 num_concentration_2DC = num_concentration_2DC ./ 1000;         % # of droplets/cm^3 per bin
 
+% read in the 2DC variable info
+C1DCA_RPC_info = ncinfo(filename, 'C1DCA_RPC');
+
 % Grab the droplet size bins
 % These are the boundaries that define each bin size
 % Bins are defined as diameters. Divide by 2 to get the radius
-drop_radius_bin_edges_2DC = info.Variables(119).Attributes(12).Value./2;                        % microns
+drop_radius_bin_edges_2DC = C1DCA_RPC_info.Attributes(12).Value./2;                        % microns
 
 % The data tells us which bins to take
-first_bin_2DC = double(info.Variables(119).Attributes(10).Value);
-last_bin_2DC = double(info.Variables(119).Attributes(11).Value);
+first_bin_2DC = double(C1DCA_RPC_info.Attributes(10).Value);
+last_bin_2DC = double(C1DCA_RPC_info.Attributes(11).Value);
 
 %drop_radius_bin_edges_2DC2 = drop_radius_bin_edges_2DC(first_bin_2DC:end);                                  % microns
 drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
