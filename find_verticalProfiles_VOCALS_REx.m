@@ -78,7 +78,7 @@ for ii = 1:length(index_consec)-1
         repmat(diff(double(vocalsRex.drop_radius_bin_edges))', 1, length(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1)))));
 
     vert_profs.time{ii} = vocalsRex.time(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.time_UTC{ii} = UTC_starttime + double(vert_profs.time{ii})./3600;
+    vert_profs.time_utc{ii} = UTC_starttime + double(vert_profs.time{ii})./3600;
     vert_profs.lwc{ii} = vocalsRex.lwc(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.latitude{ii} = vocalsRex.latitude(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.longitude{ii} = vocalsRex.longitude(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
@@ -124,7 +124,7 @@ end
 vert_profs.Nc(index2delete) = [];
 vert_profs.nr(index2delete) = [];
 vert_profs.time(index2delete) = [];
-vert_profs.time_UTC(index2delete) = [];
+vert_profs.time_utc(index2delete) = [];
 vert_profs.lwc(index2delete) = [];
 vert_profs.latitude(index2delete) = [];
 vert_profs.longitude(index2delete) = [];
@@ -236,7 +236,7 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.Nc{ii} = 0;
         vert_profs.nr{ii} = 0;
         vert_profs.time{ii} = 0;
-        vert_profs.time_UTC{ii} = 0;
+        vert_profs.time_utc{ii} = 0;
         vert_profs.lwc{ii} = 0;
         vert_profs.latitude{ii} = 0;
         vert_profs.longitude{ii} = 0;
@@ -254,7 +254,7 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.Nc{ii} = vert_profs.Nc{ii}(indexes2keep(1):indexes2keep(end));
         vert_profs.nr{ii} = vert_profs.nr{ii}(:, indexes2keep(1):indexes2keep(end));
         vert_profs.time{ii} = vert_profs.time{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.time_UTC{ii} = vert_profs.time_UTC{ii}(indexes2keep(1):indexes2keep(end));
+        vert_profs.time_utc{ii} = vert_profs.time_utc{ii}(indexes2keep(1):indexes2keep(end));
         vert_profs.lwc{ii} = vert_profs.lwc{ii}(indexes2keep(1):indexes2keep(end));
         vert_profs.latitude{ii} = vert_profs.latitude{ii}(indexes2keep(1):indexes2keep(end));
         vert_profs.longitude{ii} = vert_profs.longitude{ii}(indexes2keep(1):indexes2keep(end));
@@ -287,7 +287,7 @@ if sum(find_max_less_than_threshold)>0
     vert_profs.Nc(find_max_less_than_threshold) = [];
     vert_profs.nr(find_max_less_than_threshold) = [];
     vert_profs.time(find_max_less_than_threshold) = [];
-    vert_profs.time_UTC(find_max_less_than_threshold) = [];
+    vert_profs.time_utc(find_max_less_than_threshold) = [];
     vert_profs.lwc(find_max_less_than_threshold) = [];
     vert_profs.latitude(find_max_less_than_threshold) = [];
     vert_profs.longitude(find_max_less_than_threshold) = [];

@@ -4,7 +4,7 @@
 % By Andrew John Buggee
 %%
 
-function [] = plot_LWC_and_re_vs_opticalDepth(vert_profiles, indices)
+function [] = plot_LWC_and_re_vs_opticalDepth(vert_profiles, indices, normalize_opticalDepth)
 
 % define the denisty of liquid water
 density = 1e6;          % g/m^3
@@ -52,13 +52,26 @@ for nn = 1:N_cuvres
     % Because the data is oriented by values at the cloud bottom first
     % the tau vector goes from the largest values to 0
     
+    if normalize_opticalDepth==false
 
-    subplot(1,2,1); plot(vert_profiles.lwc{indices(nn)}, tau)
-    hold on
+        subplot(1,2,1); plot(vert_profiles.lwc{indices(nn)}, tau)
+        hold on
 
-    % next plot the effective radius
-    subplot(1,2,2); plot(vert_profiles.re{indices(nn)}, tau); 
-    hold on
+        % next plot the effective radius
+        subplot(1,2,2); plot(vert_profiles.re{indices(nn)}, tau);
+        hold on
+
+    else
+
+        subplot(1,2,1); plot(vert_profiles.lwc{indices(nn)}, tau./max(tau))
+        hold on
+
+        % next plot the effective radius
+        subplot(1,2,2); plot(vert_profiles.re{indices(nn)}, tau./max(tau));
+        hold on
+
+    end
+
 
 
 end
@@ -74,10 +87,10 @@ ylabel('$\tau$', 'Interpreter','latex');
 subplot(1,2,2)
 set(gca, 'ydir', 'reverse')
 grid on; grid minor; 
-xlabel('re ($\mu m$)', 'Interpreter','latex')
+xlabel('$r_{e}$ ($\mu m$)', 'Interpreter','latex')
 
 % set plot size
-set(gcf, 'Position', [0 0 1000 550])
+set(gcf, 'Position', [0 0 1000 500])
 
 
 

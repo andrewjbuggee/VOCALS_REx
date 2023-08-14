@@ -15,9 +15,9 @@ modis_timeUTC = modis.time(1) + modis.time(2)/min_per_hour;
 
 % Now combine all time vectors together so we can find which profile is
 % closest in time to the MODIS data
-time2modis = zeros(1, length(vert_prof.time_UTC));
-for nn = 1:length(vert_prof.time_UTC)
-    time2modis(nn) = min(abs(vert_prof.time_UTC{nn} - modis_timeUTC)); % times are in hours
+time2modis = zeros(1, length(vert_prof.time_utc));
+for nn = 1:length(vert_prof.time_utc)
+    time2modis(nn) = min(abs(vert_prof.time_utc{nn} - modis_timeUTC)); % times are in hours
 end
 
 % Determine which profile is closest to the time MODIS data was recorded

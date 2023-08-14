@@ -9,7 +9,7 @@ function vocalsRex = readVocalsRex(filename)
 info = ncinfo(filename);
 
 % read the time vector
-time = ncread(filename, 'Time');                                                                                        % Measured in seconds
+time = ncread(filename, 'Time');                   % Measured in seconds
 
 % [hours, minutes]
 startTime = [str2double(info.Variables(1).Attributes(3).Value(26:27)),...
@@ -186,8 +186,9 @@ vocalsRex.drop_radius_bin_edges = drop_radius_bin_edges;
 vocalsRex.drop_radius_bin_center = drop_radius_bin_center;
 vocalsRex.total_Nc = total_Nc;
 vocalsRex.lwc = lwc;
-vocalsRex.time = time;
+vocalsRex.time = double(time);
 vocalsRex.startTime = startTime;                                  % We have to assume that this is in UTC time as well
+vocalsRex.time_utc = double((startTime(1) + startTime(2)/60) + vocalsRex.time./3600); % UTC time
 vocalsRex.latitude = lat;
 vocalsRex.longitude = long;
 vocalsRex.altitude = altitude';
