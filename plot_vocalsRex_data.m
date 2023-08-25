@@ -1,15 +1,24 @@
 %% Load some VOCALS-REx Data
 
 % Oct-18-2008 Data
-%filename = 'RF02.20081018.130300_213000.PNI.nc';
+% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_10_18/';
+% filename = 'RF02.20081018.130300_213000.PNI.nc';
 
-% November 11, 2008 data
-%filename = 'RF12.20081111.125000_214500.PNI.nc';
-
+% Oct-25-2008 Data
+% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_10_25/';
+% filename = 'RF05.20081025.062900_152500.PNI.nc';
 
 % ----- November 9 data -----
-foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_09/';
-filename = 'RF11.20081109.125700_213600.PNI.nc';
+% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_09/';
+% filename = 'RF11.20081109.125700_213600.PNI.nc';
+
+% November 11, 2008 data
+foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_11/';
+filename = 'RF12.20081111.125000_214500.PNI.nc';
+
+
+
+
 
 
 
@@ -17,7 +26,7 @@ filename = 'RF11.20081109.125700_213600.PNI.nc';
 vocalsRex = readVocalsRex([foldername,filename]);
 
 % find vertical profiles
-LWC_threshold = 0.03;
+LWC_threshold = 0.02;       % g/m^3
 stop_at_max_LWC = false;
 vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC);
 

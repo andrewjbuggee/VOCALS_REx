@@ -28,27 +28,35 @@
 
 function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_lwc)
 
+% Define the length of consecutive values found above the liquid water
+% content threshold that is required to deem it a vertical profile.
+consecutive_length_threshold = 5;
+
 
 % Let's also store the time vector in UTC format
 
 UTC_starttime = vocalsRex.startTime(1) + vocalsRex.startTime(2)/60;   % hours.decimalhours in UTC format
 
 
-
+% ---- Vertical Profile Requirements ----
 % dz/dt must be non-zero.
 % Total Nc has to start at a value below 1
 % Total Nc has to end at a value below 1
+% ----------------------------------------
 
 % First lets crop the data only to those portions where the plane is
 % ascending or descending
 
-dz_dt = diff(vocalsRex.altitude)./diff(double(vocalsRex.time))';
+dz_dt = diff(vocalsRex.altitude)./diff(vocalsRex.time);            % m/s
 
-% Compute the mean with a sliding window for every 10 data points
+% Compute the mean with a sliding window for every n data points
 % This will smooth out the data and make the horizontal flight segments
-% easier to find
+% easier to find. It's important we ignore the horizontal segments and find
+% only the vertical profiles
 
-dz_dt_mean = movmean(dz_dt,20);
+n_window = 20;
+
+dz_dt_mean = movmean(dz_dt,n_window);
 
 
 % The plane's vertical velocity exceeds 2 m/s on average when it ascends or
@@ -57,9 +65,10 @@ dz_dt_mean = movmean(dz_dt,20);
 index_ascend_or_descend = find(abs(dz_dt_mean)>2);
 
 
-% Find consecutive integers, which represent stand alone profiles where the
-% plance is climbing or descending
+% Find consecutive logical true values, which represent stand alone
+% profiles where the plane is climbing or descending.
 index_consec = find(diff(index_ascend_or_descend)~=1);
+
 % include a 1 to start
 index_consec = [0, index_consec];
 
@@ -68,10 +77,10 @@ index_consec = [0, index_consec];
 % -----------------------------------------------------------------------
 % For each break in the data, create a profile
 for ii = 1:length(index_consec)-1
-    
+
     % read in the total number of droplets per unit volume
     vert_profs.Nc{ii} = vocalsRex.total_Nc(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    
+
     % read in the number of droplets for each size bin, and divide by the
     % width of the size bin to estimate the droplet distribution
     vert_profs.nr{ii} = vocalsRex.Nc(:,index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))./...
@@ -98,6 +107,7 @@ vert_profs.startTime = vocalsRex.startTime;                                     
 
 
 
+
 % -----------------------------------------------------------------------
 % Now find which of these profiles start and end with Nc<1 AND have some values above 1
 
@@ -107,13 +117,17 @@ for ii = 1:length(vert_profs.Nc)
 
     %[vert_profs.Nc{ii}(1), vert_profs.Nc{ii}(end), any(vert_profs.Nc{ii}>10^7), all(vert_profs.Nc{ii}<1)]
 
-
+    % Check to see if any of these statements are met. If so, delete the
+    % profile
     if vert_profs.Nc{ii}(1)>1 || vert_profs.Nc{ii}(end)>1 || any(vert_profs.Nc{ii}>10^7) || all(vert_profs.Nc{ii}<1)
 
         % if this is true, mark the index for deletion
         index2delete = [index2delete, ii];
 
     end
+
+
+
 
 end
 
@@ -163,6 +177,7 @@ vert_profs.LWB(index2delete) = [];
 % -----------------------------------------------------------------------
 % Now sort through the vertical profiles and get rid of Data points where
 % the LWC is below some threshold
+% -----------------------------------------------------------------------
 
 %LWC_threshold = 0;                              % g/m^3
 
@@ -170,57 +185,156 @@ vert_profs.LWB(index2delete) = [];
 max_lwc = zeros(1, length(vert_profs.lwc));
 
 
+% create a zero vector that defines which profiles don't meet requirements
+% and need to be delted
+%profile_idx_2delete = zeros(1, length(vert_profs.lwc));
 
 
 for ii = 1:length(vert_profs.lwc)
 
     % Find the first data point and the last data point where the LWC
-    % threshold is exceeded. That is, before the first index, every value
-    % should be below the threshold. And all data points after the last
-    % index should also be below the threshold
+    % threshold is exceeded. That is, before the first index, several
+    % values should be below the threshold. And several data points
+    % after the last index should also be below the threshold
 
     indexes_above_threshold = vert_profs.lwc{ii}>=LWC_threshold;
 
-    % find the first 0, the first data point that exceeds the LWC
+    % find the first 1, the first data point that exceeds the LWC
     % threshold. The first value in the index below is where the
     % profile will start. The last index below will be the end of the
     % profile
     indexes2keep = find(indexes_above_threshold);
 
+    % We also need to check every profile to ensure the liquid water
+    % content stays above our threshold for the entire profile. It should
+    % only drop below our threshold at before and after the profile found
+    % the below while loop searches for the index to end on. Everything
+    % inbetween the first and last index should be greater than or equal to
+    % the LWC threshold
+    consecutive_length = zeros(length(indexes2keep), length(indexes2keep));
 
-    % find the max LWC and the index associated with this value
-    % The max value wil be used to remove profiles that don't have a max
-    % LWC above the minimum threshold. The max_index will be used if the
-    % profile needs to stop at the max LWC value
-    [max_lwc(ii), index_max] = max(vert_profs.lwc{ii});
+
+    % This is getting redundant, but oh well
+
+    if isempty(indexes2keep)==true
+
+        % do nothing, this profile will be thrown out
+
+    else
+
+        for firstIndex = indexes2keep(1):indexes2keep(end)-1
+            for lastIndex = firstIndex+1:indexes2keep(end)
+
+                % if all values between the first index and last index are
+                % true, this means they are all above the minimum liquid water
+                % content threshold
+                if all(vert_profs.lwc{ii}(firstIndex:lastIndex)>=LWC_threshold)==true
+
+                    % compute the length of the vector
+                    consecutive_length(firstIndex, lastIndex) = length(vert_profs.lwc{ii}(firstIndex:lastIndex));
+
+                end
+
+            end
+        end
+
+        % Now we find the first and last index that corresponds to the longest
+        % consecutive string of values above the LWC threshold
+        [~, max_idx] = max(consecutive_length, [], 'all');
+
+        % the row and column correspond the the first and last index,
+        % respectively
+        [firstIndex, lastIndex] = ind2sub(size(consecutive_length), max_idx);
+
+
+
+        % find the max LWC and the index between the first and last index.
+        % The max value wil be used to remove profiles that don't have a max
+        % LWC above the minimum threshold. The max_index will be used if the
+        % profile needs to stop at the max LWC value as well
+        [max_lwc(ii), index_max_lwc] = max(vert_profs.lwc{ii}(firstIndex:lastIndex));
+
+        [~, index_absolute_max_lwc] = max(vert_profs.lwc{ii});
+
+
+    end
 
 
 
     if stop_at_max_lwc == true
 
 
-        if sum(indexes2keep)==0
+        if isempty(indexes2keep)==true
 
             % do nothing if this is true. The values will simply be set to
             % zero.
 
         else
 
-        % The data will start at the first index above the minimum
-        % threshold, found above, and end at the index of maximum LWC,
-        % found in this if statement
+            % if the plane is ascending, and the LWC is growing with
+            % altitude within the cloud, the max LWC value will the final
+            % index. If the plane is descending, and the LWC is growing
+            % with altitude within the cloud, then the LWC will be the
+            % first index.
 
-        indexes2keep = [indexes2keep(1), index_max];
+            % The data will start at the first index above the minimum
+            % threshold, found above, and end at the index of maximum LWC,
+            % found in this if statement
+
+            dz_dt = diff(vert_profs.altitude{ii}(firstIndex:lastIndex))./diff(double(vert_profs.time{ii}(firstIndex:lastIndex)))';
+
+            % first let's smooth out the LWC profile
+            lwc_smooth = movmean(double(vert_profs.lwc{ii}(firstIndex:lastIndex)), 12);
+            dLWC_dz = diff(lwc_smooth)./diff(vert_profs.altitude{ii}(firstIndex:lastIndex));
+
+            % if the liquid water content is increasing with altitude, then
+            % the max value is the last index. If the liquid water content
+            % decreases with altitude, then the first index is the max
+            % value
+
+            % first determine if the plane is ascending or descending
+
+            if mean(dz_dt)>0
+                % if true then the plane is ascending
+                if mean(dLWC_dz)>0
+                    % and the lwc is increasing, make the last index the
+                    % max LWC value
+
+                    lastIndex = firstIndex + index_max_lwc -1;
+
+                elseif mean(dLWC_dz)<0
+                    % then the lwc is decreasing with altitude and we
+                    % should set the first index with the max value
+
+                    firstIndex = firstIndex + index_max_lwc -1;
+
+                end
+
+            elseif mean(dz_dt)<0
+                % then the plane is descending
+                if mean(dLWC_dz)>0
+                    % then the lwc increases with decreasing height, which
+                    % means the lwc decreases with increasing height, and
+                    % so the first index should be set as the max index.
+
+                    firstIndex = firstIndex + index_max_lwc -1;
+
+                    % and we keep the last index
+
+                elseif mean(dLWC_dz)<0
+                    % then the lwc is descreasing as we descend, which
+                    % means the LWC is increasing with increasing altitude,
+                    % and the last index should be set as the max value
+
+                    lastIndex = firstIndex + index_max_lwc -1;
+
+                end
 
 
-        %         index_max_2End = (index_max+1):numel(vert_profs.lwc{ii});
-        %
-        %
-        %         index2delete = vert_profs.lwc{ii}<LWC_threshold;
-        %
-        %         % allow indices beyond the max LWC are set to true, and thus are
-        %         % deleted
-        %         index2delete(index_max_2End) = true;
+            end
+
+
+
 
         end
 
@@ -231,7 +345,7 @@ for ii = 1:length(vert_profs.lwc)
     % if none of the values within the vertical profile are above the LWC
     % threshold, delete this profile. But for now, just set it to be a
     % vector of 0's
-    if sum(indexes2keep)==0
+    if isempty(indexes2keep)==true
 
         vert_profs.Nc{ii} = 0;
         vert_profs.nr{ii} = 0;
@@ -247,26 +361,82 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.LWT{ii} = 0;
         vert_profs.LWB{ii} = 0;
 
+
+        % if the longest consecutive vector of measurements above the
+        % defined liquid water content threshold is less than the
+        % consecutive length threshold, we won't keep this vertical
+        % profile.
+
+    elseif length(firstIndex:lastIndex)<consecutive_length_threshold
+
+        vert_profs.Nc{ii} = 0;
+        vert_profs.nr{ii} = 0;
+        vert_profs.time{ii} = 0;
+        vert_profs.time_utc{ii} = 0;
+        vert_profs.lwc{ii} = 0;
+        vert_profs.latitude{ii} = 0;
+        vert_profs.longitude{ii} = 0;
+        vert_profs.altitude{ii} = 0;
+        vert_profs.re{ii} = 0;
+        vert_profs.SWT{ii} = 0;
+        vert_profs.SWB{ii} = 0;
+        vert_profs.LWT{ii} = 0;
+        vert_profs.LWB{ii} = 0;
+
+
+
+
     else
 
         % delete all time-stamped data that meet the above logical statement
 
-        vert_profs.Nc{ii} = vert_profs.Nc{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.nr{ii} = vert_profs.nr{ii}(:, indexes2keep(1):indexes2keep(end));
-        vert_profs.time{ii} = vert_profs.time{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.time_utc{ii} = vert_profs.time_utc{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.lwc{ii} = vert_profs.lwc{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.latitude{ii} = vert_profs.latitude{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.longitude{ii} = vert_profs.longitude{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.altitude{ii} = vert_profs.altitude{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.re{ii} = vert_profs.re{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.SWT{ii} = vert_profs.SWT{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.SWB{ii} = vert_profs.SWB{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.LWT{ii} = vert_profs.LWT{ii}(indexes2keep(1):indexes2keep(end));
-        vert_profs.LWB{ii} = vert_profs.LWB{ii}(indexes2keep(1):indexes2keep(end));
+        vert_profs.Nc{ii} = vert_profs.Nc{ii}(firstIndex:lastIndex);
+        vert_profs.nr{ii} = vert_profs.nr{ii}(:, firstIndex:lastIndex);
+        vert_profs.time{ii} = vert_profs.time{ii}(firstIndex:lastIndex);
+        vert_profs.time_utc{ii} = vert_profs.time_utc{ii}(firstIndex:lastIndex);
+        vert_profs.lwc{ii} = vert_profs.lwc{ii}(firstIndex:lastIndex);
+        vert_profs.latitude{ii} = vert_profs.latitude{ii}(firstIndex:lastIndex);
+        vert_profs.longitude{ii} = vert_profs.longitude{ii}(firstIndex:lastIndex);
+        vert_profs.altitude{ii} = vert_profs.altitude{ii}(firstIndex:lastIndex);
+        vert_profs.re{ii} = vert_profs.re{ii}(firstIndex:lastIndex);
+        vert_profs.SWT{ii} = vert_profs.SWT{ii}(firstIndex:lastIndex);
+        vert_profs.SWB{ii} = vert_profs.SWB{ii}(firstIndex:lastIndex);
+        vert_profs.LWT{ii} = vert_profs.LWT{ii}(firstIndex:lastIndex);
+        vert_profs.LWB{ii} = vert_profs.LWB{ii}(firstIndex:lastIndex);
 
 
     end
+
+
+    % Flag profiles where the LWC has been set to a single value comprised of a 0
+    % These need to be deleted.
+
+    if length(vert_profs.lwc{ii})==1 && vert_profs.lwc{ii}==0
+
+        profile_idx_2delete(ii) = true;
+
+
+    else
+
+        profile_idx_2delete(ii) = false;
+
+    end
+
+
+    % Also check to see if the total profile found is less than 50 meters
+    % deep. If it is, flag it for deletion
+
+    if abs(vert_profs.altitude{ii}(1) - vert_profs.altitude{ii}(end))<50
+
+        profile_idx_2delete(ii) = true;
+
+
+    else
+
+        profile_idx_2delete(ii) = false;
+
+    end
+
 
 
 end
@@ -274,29 +444,29 @@ end
 
 
 
-% If the max LWC content found is below the LWC threshold, the vertical
-% profile will be an empty vector, and we should delete it
 
-find_max_less_than_threshold = max_lwc<LWC_threshold;
+
+% the is_profile_zero logical array defines which profiles to delete
+
 
 % if this is true, delete all entries for the index
-if sum(find_max_less_than_threshold)>0
+if sum(profile_idx_2delete)>0
 
     % delete all time-stamped data that meet the above logical statement
 
-    vert_profs.Nc(find_max_less_than_threshold) = [];
-    vert_profs.nr(find_max_less_than_threshold) = [];
-    vert_profs.time(find_max_less_than_threshold) = [];
-    vert_profs.time_utc(find_max_less_than_threshold) = [];
-    vert_profs.lwc(find_max_less_than_threshold) = [];
-    vert_profs.latitude(find_max_less_than_threshold) = [];
-    vert_profs.longitude(find_max_less_than_threshold) = [];
-    vert_profs.altitude(find_max_less_than_threshold) = [];
-    vert_profs.re(find_max_less_than_threshold) = [];
-    vert_profs.SWT(find_max_less_than_threshold) = [];
-    vert_profs.SWB(find_max_less_than_threshold) = [];
-    vert_profs.LWT(find_max_less_than_threshold) = [];
-    vert_profs.LWB(find_max_less_than_threshold) = [];
+    vert_profs.Nc(profile_idx_2delete) = [];
+    vert_profs.nr(profile_idx_2delete) = [];
+    vert_profs.time(profile_idx_2delete) = [];
+    vert_profs.time_utc(profile_idx_2delete) = [];
+    vert_profs.lwc(profile_idx_2delete) = [];
+    vert_profs.latitude(profile_idx_2delete) = [];
+    vert_profs.longitude(profile_idx_2delete) = [];
+    vert_profs.altitude(profile_idx_2delete) = [];
+    vert_profs.re(profile_idx_2delete) = [];
+    vert_profs.SWT(profile_idx_2delete) = [];
+    vert_profs.SWB(profile_idx_2delete) = [];
+    vert_profs.LWT(profile_idx_2delete) = [];
+    vert_profs.LWB(profile_idx_2delete) = [];
 
 end
 
@@ -323,59 +493,211 @@ vert_profs.lwc_threshold = LWC_threshold;            % g/m^3
 if iscell(vert_profs.altitude)==true
 
     num_profiles = length(vert_profs.altitude);
-    
-    
+
+
     % step through each profile
     for nn = 1:num_profiles
-        
-        
+
+
         vector_length = length(vert_profs.altitude{nn});
         vert_profs.tau{nn} = zeros(1,vector_length-1);
 
 
-        % step through the altitude array
-        for ii = 1:vector_length-1
-            
-            % we have to convert Nc and re to have the same units as the alitude,
-            % which is in meters
-            re_meters = vert_profs.re{nn}(vector_length-ii:vector_length)./1e6;                                   % meters
-            total_Nc_meters = vert_profs.Nc{nn}(vector_length-ii:vector_length).*1e6;                           % #/m^3
-            altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length);
-            % we need to flip these vectors so we start integratin at the cloud
-            % top!
-            vert_profs.tau{nn}(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
-        
+        % Optical thickness is defined by integrating from cloud top to
+        % cloud bottom. If the plane increases in altitude, we need to
+        % integrating from the end of the profile (cloud top) to the
+        % begining (cloud bottom). If the plane is descending, we do
+        % the opposite.
+
+        dz_dt = diff(vert_profs.altitude{nn})./diff(vert_profs.time{nn})';
+
+
+        if mean(dz_dt)>0
+            % then the plane is ascending!
+
+
+            % step through the altitude array
+            for ii = 1:vector_length-1
+
+
+                % we have to convert Nc and re to have the same units as the alitude,
+                % which is in meters
+                re_meters = vert_profs.re{nn}(vector_length-ii:vector_length)./1e6;                      % meters
+                total_Nc_meters = vert_profs.Nc{nn}(vector_length-ii:vector_length).*1e6;                           % #/m^3
+                altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length);
+
+
+                % We assume the droplet size is appreciably larger than the
+                % incident wavelength (something in the visible, like 550 nm)
+                % so we can assume the extinction efficiency is 2. This leads
+                % to the following equation for optical depth:
+                % tau = integral( Q_e * pi * r^2(z) * N_c(z) ) dz
+                % where Q_e is set to 2
+                %vert_profs.tau{nn}(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
+
+                % Or we can use a pre-computed mie table to use a more
+                % accurate value for the extinction efficiency.
+                %Q_e = interp_mie_computed_tables([linspace(550, 550, length(re_meters))', re_meters.*1e6], 'mono', true);
+
+                % Or we could compute the average extinction efficiency
+                % over a droplet size distrubution
+                [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
+                    550, 'water', 'gamma');
+
+                vert_profs.tau{nn}(ii) = pi* trapz(flipud(altitude), flipud(Qe_avg' .* re_meters.^2 .* total_Nc_meters));
+
+            end
+
+        elseif mean(dz_dt)<0
+            % then the plane is descending!
+
+            % step through the altitude array
+            for ii = 1:vector_length-1
+
+
+                % we have to convert Nc and re to have the same units as the alitude,
+                % which is in meters
+                re_meters = vert_profs.re{nn}(1:ii+1)./1e6;                      % meters
+                total_Nc_meters = vert_profs.Nc{nn}(1:ii+1).*1e6;                           % #/m^3
+                altitude = vert_profs.altitude{nn}(1) -  vert_profs.altitude{nn}(1:ii+1);
+
+
+                % We assume the droplet size is appreciably larger than the
+                % incident wavelength (something in the visible, like 550 nm)
+                % so we can assume the extinction efficiency is 2. This leads
+                % to the following equation for optical depth:
+                % tau = integral( Q_e * pi * r^2(z) * N_c(z) ) dz
+                % where Q_e is set to 2
+                vert_profs.tau{nn}(ii) = 2*pi* trapz(altitude, re_meters.^2 .* total_Nc_meters);
+
+
+                % Or we can use a pre-computed mie table to use a more
+                % accurate value for the extinction efficiency.
+                %Q_e = interp_mie_computed_tables([linspace(550, 550, length(re_meters))', re_meters'.*1e6], 'mono', true);
+
+
+                % Or we could compute the average extinction efficiency
+                % over a droplet size distrubution
+                [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
+                    550, 'water', 'gamma');
+
+
+                vert_profs.tau{nn}(ii) = pi* trapz(altitude, Qe_avg(:,end) .* re_meters.^2 .* total_Nc_meters);
+
+
+
+            end
+
         end
+
+
 
         % add a zero at the begining!
         vert_profs.tau{nn} = [0,vert_profs.tau{nn}];
 
     end
 
+
+
+
 else
 
     % if vocalsRex is not a cell, then there is only one profile
 
-        vector_length = length(vert_profs.altitude);
-        vert_profs.tau = zeros(1,vector_length-1);
+    vector_length = length(vert_profs.altitude);
+    vert_profs.tau = zeros(1,vector_length-1);
+
+    % Optical thickness is defined by integrating from cloud top to
+    % cloud bottom. If the plane increases in altitude, we need to
+    % integrating from the end of the profile (cloud top) to the
+    % begining (cloud bottom). If the plane is descending, we do
+    % the opposite.
+
+    dz_dt = diff(vert_profs.altitude{nn})./diff(vert_profs.time{nn})';
+
+    if mean(dz_dt)>0
 
 
         % step through the altitude array
         for ii = 1:vector_length-1
-            
+
             % we have to convert Nc and re to have the same units as the alitude,
             % which is in meters
-            re_meters = vert_profs.re(vector_length-ii:vector_length)./1e6;                                   % meters
+            re_meters = vert_profs.re(vector_length-ii:vector_length)./1e6;                      % meters
             total_Nc_meters = vert_profs.Nc(vector_length-ii:vector_length).*1e6;                           % #/m^3
             altitude = vert_profs.altitude(end) -  vert_profs.altitude(vector_length-ii:vector_length);
-            % we need to flip these vectors so we start integratin at the cloud
-            % top!
-            vert_profs.tau(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
-        
+
+
+            % We assume the droplet size is appreciably larger than the
+            % incident wavelength (something in the visible, like 550 nm)
+            % so we can assume the extinction efficiency is 2. This leads
+            % to the following equation for optical depth:
+            % tau = integral( Q_e * pi * r^2(z) * N_c(z) ) dz
+            % where Q_e is set to 2
+            %vert_profs.tau(ii) = 2*pi* trapz(flipud(altitude), flipud(re_meters.^2 .* total_Nc_meters));
+
+            % Or we can use a pre-computed mie table to use a more
+            % accurate value for the extinction efficiency.
+            %Q_e = interp_mie_computed_tables([linspace(550, 550, length(re_meters))', re_meters.*1e6], 'mono', true);
+
+            % Or we could compute the average extinction efficiency
+            % over a droplet size distrubution
+            [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
+                550, 'water', 'gamma');
+
+            vert_profs.tau(ii) = pi* trapz(flipud(altitude), flipud(Qe_avg' .* re_meters.^2 .* total_Nc_meters));
+
+
+
+
+
         end
 
-        % add a zero at the begining!
-        vert_profs.tau = [0,vert_profs.tau];
+    elseif mean(dz_dt)<0
+
+        % The plane is descending! The cloud top values come first
+
+
+        % we have to convert Nc and re to have the same units as the alitude,
+        % which is in meters
+        re_meters = vert_profs.re(1:ii+1)./1e6;                      % meters
+        total_Nc_meters = vert_profs.Nc(1:ii+1).*1e6;                           % #/m^3
+        altitude = vert_profs.altitude(1) -  vert_profs.altitude(1:ii+1);
+
+
+        % We assume the droplet size is appreciably larger than the
+        % incident wavelength (something in the visible, like 550 nm)
+        % so we can assume the extinction efficiency is 2. This leads
+        % to the following equation for optical depth:
+        % tau = integral( Q_e * pi * r^2(z) * N_c(z) ) dz
+        % where Q_e is set to 2
+        %vert_profs.tau(ii) = 2*pi* trapz(altitude, re_meters.^2 .* total_Nc_meters);
+
+
+        % Or we can use a pre-computed mie table to use a more
+        % accurate value for the extinction efficiency.
+        %Q_e = interp_mie_computed_tables([linspace(550, 550, length(re_meters))', re_meters'.*1e6], 'mono', true);
+
+
+        % Or we could compute the average extinction efficiency
+        % over a droplet size distrubution
+        [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
+            550, 'water', 'gamma');
+
+
+        vert_profs.tau(ii) = pi* trapz(altitude, Qe_avg(:,end) .* re_meters.^2 .* total_Nc_meters);
+
+
+
+    else
+
+        error([newline, 'Something is wrong with the calculation of vertical velocity'], newline)
+
+    end
+
+
+    % add a zero at the begining!
+    vert_profs.tau = [0,vert_profs.tau];
 
 
 end

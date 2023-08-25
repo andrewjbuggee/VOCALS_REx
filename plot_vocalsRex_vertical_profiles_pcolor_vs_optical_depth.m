@@ -90,8 +90,10 @@ if n_profiles<=3
             ylabel('$\tau$', 'Interpreter','latex')
         end
 
-        % set the title as the index number
-        title(['Index = ', num2str(index2plot(nn))], 'Interpreter', 'latex')
+        % set the title as the UTC time at the middle of the vertical
+        % profile
+        title(['UTC Time: ',num2str(median(vert_profs.time_utc{index2plot(nn)}))], 'Interpreter','latex', ...
+            'FontSize', 20)
 
         c = colorbar;
 
@@ -202,8 +204,10 @@ elseif n_profiles>3 && n_profiles<=10
             xlabel('$r$ $(\mu m)$', 'Interpreter','latex')
         end
 
-        % set the title as the index number
-        title(['Index = ', num2str(index2plot(nn))], 'Interpreter', 'latex', 'FontSize', 20)
+        % set the title as the UTC time at the middle of the vertical
+        % profile
+        title(['UTC Time: ',num2str(median(vert_profs.time_utc{index2plot(nn)}))], 'Interpreter','latex', ...
+            'FontSize', 20)
 
         c = colorbar;
 
@@ -335,6 +339,11 @@ elseif n_profiles>10
         if nn==n_profiles
             ylabel(c,'$n(r)$ $(m^{-3}$)','FontSize',25, 'interpreter', 'latex');
         end
+
+        % set the title as the UTC time at the middle of the vertical
+        % profile
+        title(['UTC Time: ',num2str(median(vert_profs.time_utc{index2plot(nn)}))], 'Interpreter','latex',...
+            'FontSize', 20)
 
 
         % set the colormap to vary logarithmically

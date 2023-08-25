@@ -73,15 +73,15 @@ if N_curves<4
 
             norm_tau = tau./tau(1);
 
-            subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, norm_tau)
+            ax1 = subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, norm_tau)
             hold on
 
             % next plot the effective radius
-            subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
+            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
             hold on
 
             % Finally, plot the total droplet number concentration
-            subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, norm_tau);
+            ax3 = subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, norm_tau);
             hold on
 
 
@@ -89,15 +89,15 @@ if N_curves<4
 
 
 
-            subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, tau)
+            ax1 = subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, tau)
             hold on
 
             % next plot the effective radius
-            subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
+            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
             hold on
 
             % Finally, plot the total droplet number concentration
-            subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, tau);
+            ax3 = subplot(1,3,3); plot(vert_profiles.Nc{indices(nn)}, tau);
             hold on
 
         end
@@ -155,21 +155,21 @@ else
 
             norm_tau = tau./tau(1);
 
-            subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, norm_tau);
+            ax1 = subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, norm_tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
             % next plot the effective radius
-            subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, norm_tau);
+            ax2 = subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, norm_tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
             % Finally, plot the total droplet number concentration
-            subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, norm_tau);
+            ax3 = subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, norm_tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
 
@@ -177,21 +177,21 @@ else
         else
 
 
-            subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, tau);
+            ax1 = subplot(1,3,1); l = plot(vert_profiles.lwc{indices(nn)}, tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
             % next plot the effective radius
-            subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, tau);
+            ax2 = subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
             % Finally, plot the total droplet number concentration
-            subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, tau);
+            ax3 = subplot(1,3,3); l = plot(vert_profiles.Nc{indices(nn)}, tau);
             % Set the transparency to 50%
-            l.Color(4) = 0.5;
+            %l.Color(4) = 0.5;
             hold on
 
         end
@@ -225,6 +225,10 @@ xlabel('$N_c$ ($m^{-3}$)', 'Interpreter','latex')
 
 % set plot size
 set(gcf, 'Position', [0 0 1000 550])
+
+% Link the vertical axes together so that when you zoom, all subplots have
+% the same limits
+linkaxes([ax1, ax2, ax3], 'y')
 
 
 
