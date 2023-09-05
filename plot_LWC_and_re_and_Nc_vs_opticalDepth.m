@@ -221,7 +221,7 @@ title(['LWC $\geq$ ', num2str(vert_profiles.lwc_threshold),' $g/m^{3}$'], 'inter
 subplot(1,3,3)
 set(gca, 'ydir', 'reverse')
 grid on; grid minor;
-xlabel('$N_c$ ($m^{-3}$)', 'Interpreter','latex')
+xlabel('$N_c$ ($cm^{-3}$)', 'Interpreter','latex')
 
 % set plot size
 set(gcf, 'Position', [0 0 1000 550])

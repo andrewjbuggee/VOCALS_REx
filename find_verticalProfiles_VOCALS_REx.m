@@ -16,6 +16,7 @@
 %       Beyond this, the excluded the data. This value will be used to
 %       truncate data before and after the vertical profile.
 
+
 %       (3) stop_at_max_lwc - this is a logical flag, whose values can either
 %       be true or false. If true, each vertical profile found will be
 %       truncated at the peak value of the liquid water content. Most
@@ -25,8 +26,17 @@
 %       the LWC is below the LWC threshold defined above.
 
 
+%       (4) Nc_threshold - (droplets/cm^3) this is a threshold that helps
+%       the function find profiles with some tangible physical meaning. At
+%       times there are confounding measurements where the LWC is greater
+%       than the defined threshold but the total number concentration is
+%       less than 1. Typically this coincides with erroneous droplet size
+%       estimates. This value will be used to ensure only contiguous data
+%       above this threshold will satisfy the profile search.
 
-function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_lwc)
+
+
+function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_lwc, Nc_threshold)
 
 % Define the length of consecutive values found above the liquid water
 % content threshold that is required to deem it a vertical profile.
@@ -175,11 +185,10 @@ vert_profs.LWB(index2delete) = [];
 
 
 % -----------------------------------------------------------------------
-% Now sort through the vertical profiles and get rid of Data points where
-% the LWC is below some threshold
+% Now sort through the vertical profiles and get rid of data points where
+% the LWC and the total Nc is below some threshold
 % -----------------------------------------------------------------------
 
-%LWC_threshold = 0;                              % g/m^3
 
 % zero vector incase it is needed below
 max_lwc = zeros(1, length(vert_profs.lwc));
@@ -197,13 +206,14 @@ for ii = 1:length(vert_profs.lwc)
     % values should be below the threshold. And several data points
     % after the last index should also be below the threshold
 
-    indexes_above_threshold = vert_profs.lwc{ii}>=LWC_threshold;
+    indexes_above_LWC_Nc_threshold = vert_profs.lwc{ii}>=LWC_threshold & vert_profs.Nc{ii}>=Nc_threshold;
+
 
     % find the first 1, the first data point that exceeds the LWC
     % threshold. The first value in the index below is where the
     % profile will start. The last index below will be the end of the
     % profile
-    indexes2keep = find(indexes_above_threshold);
+    indexes2keep = find(indexes_above_LWC_Nc_threshold);
 
     % We also need to check every profile to ensure the liquid water
     % content stays above our threshold for the entire profile. It should
@@ -228,7 +238,7 @@ for ii = 1:length(vert_profs.lwc)
                 % if all values between the first index and last index are
                 % true, this means they are all above the minimum liquid water
                 % content threshold
-                if all(vert_profs.lwc{ii}(firstIndex:lastIndex)>=LWC_threshold)==true
+                if all(vert_profs.lwc{ii}(firstIndex:lastIndex)>=LWC_threshold & vert_profs.Nc{ii}(firstIndex:lastIndex)>=Nc_threshold)==true
 
                     % compute the length of the vector
                     consecutive_length(firstIndex, lastIndex) = length(vert_profs.lwc{ii}(firstIndex:lastIndex));

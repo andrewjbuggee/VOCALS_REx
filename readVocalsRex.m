@@ -82,8 +82,31 @@ for nn = 1:length(info.Variables)
         drop_radius_bin_edges_2DC = C1DCA_RPC_info.Attributes(12).Value./2;                        % microns
 
         % The data tells us which bins to take
-        first_bin_2DC = double(C1DCA_RPC_info.Attributes(10).Value);
-        last_bin_2DC = double(C1DCA_RPC_info.Attributes(11).Value);
+        for jj = 1:length(C1DCA_RPC_info.Attributes)
+            
+            if strcmp(C1DCA_RPC_info.Attributes(jj).Name, 'FirstBin')==true
+                first_bin_2DC = double(C1DCA_RPC_info.Attributes(jj).Value);
+            end
+
+            if strcmp(C1DCA_RPC_info.Attributes(jj).Name, 'LastBin')==true
+                last_bin_2DC = double(C1DCA_RPC_info.Attributes(jj).Value);
+            end
+
+
+        end
+
+        % Sometimes there isn't a frist or last bin. In that case, set them
+        % to be the full breadth of the data
+        if exist("first_bin_2DC", 'var')==false
+            % set it to be 1
+            first_bin_2DC = 1;
+        end
+
+        if exist("last_bin_2DC", 'var')==false
+            % set it to be the length of drop_bin_edges
+            last_bin_2DC = length(drop_radius_bin_edges_2DC)-1;
+        end
+        
 
         drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
         drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
@@ -226,7 +249,7 @@ re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2
 % Lets compute the total number concetration at each time step by
 % integrating over r
 %total_Nc = trapz(drop_bins, Nc,1);       % cm^(-3)
-total_Nc = sum(Nc,1);
+total_Nc = sum(Nc,1);                     % cm^(-3)
 
 % ------------------------------------------------------------------
 % --------------- Compute liquid water content ---------------------
