@@ -162,9 +162,15 @@ if exist("num_concentration_2DC", 'var')==false
 end
 
 
+% -------------------------------------------------------------------------
+% ------- Grab Wind speed, direction and sensor lat,long, altititude ------
+% -------------------------------------------------------------------------
 
+% grab the horizontal wind speed and direction
+horz_wind_speed = ncread(filename, 'WSC');                                    % m/s -  GPS corrected horizontal wind speed
+horz_wind_direction = ncread(filename, 'WDC');                                 % degrees from north -  GPS corrected horizontal wind direction 'wind from'
 
-% Grab position and timing data
+% Grab position and altitude data
 lat = ncread(filename, 'LAT');                                                        % Meausred in degrees North
 long = ncread(filename, 'LON');                                                       % Meausred in degrees East
 altitude = ncread(filename, 'ALTX');                                                  % Measured in meters above sea level
@@ -179,12 +185,30 @@ end
 % Make sure that altitude is a row vector
 altitude = reshape(altitude, 1, length(altitude));
 
+
+
+% -------------------------------------------------------------------------
+% ------- Grab the ambient air temperature and water vapor pressure ------
+% -------------------------------------------------------------------------
+water_vapor_pressure = ncread(filename, 'EDPUV');                                    % hPa - ambient water vapor pressure
+ambient_air_temp = ncread(filename, 'ATX');                                    % C - ambient air tempertaure 
+
+
+
+% -------------------------------------------------------------------------
+% ------- Grab the short and longwave radiances looking up and down ------
+% -------------------------------------------------------------------------
+
 % lets grab the shortwave and longwave radiance looking down and looking up
 shortwave_top = ncread(filename, 'SWT');
 shortwave_bot = ncread(filename, 'SWB');
 
 longwave_top = ncread(filename,'IRTC');              % These are corrected longwave irradiance values
 longwave_bot = ncread(filename, 'IRBC');
+
+
+
+
 
 
 % -------------------------------------------------------------------
@@ -285,6 +309,10 @@ vocalsRex.latitude = lat;
 vocalsRex.longitude = long;
 vocalsRex.altitude = altitude;
 vocalsRex.re = re;
+vocalsRex.horz_wind_speed = horz_wind_speed;
+vocalsRex.horz_wind_direction = horz_wind_direction;
+vocalsRex.ambient_air_temp = ambient_air_temp;
+vocalsRex.water_vapor_presure = water_vapor_pressure;
 vocalsRex.SWT = shortwave_top;
 vocalsRex.SWB = shortwave_bot;
 vocalsRex.LWT = longwave_top;

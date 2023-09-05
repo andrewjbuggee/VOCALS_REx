@@ -1,10 +1,10 @@
 
 
-function vocalsRex = cropVocalsRex2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, modis)
+function vocalsRex = cropVocalsRex2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, Nc_threshold, modis)
 
 
 % ----- Find all vertical profiles within VOCALS-REx data ------
-vert_prof = find_verticalProfiles_VOCALS_REx(vocalsRex, lwc_threshold, stop_at_max_lwc);
+vert_prof = find_verticalProfiles_VOCALS_REx(vocalsRex, lwc_threshold, stop_at_max_lwc, Nc_threshold);
 
 
 min_per_hour = 60;                                                                      % min
