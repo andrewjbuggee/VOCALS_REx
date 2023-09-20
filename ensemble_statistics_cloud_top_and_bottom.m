@@ -7,8 +7,12 @@ clear variables
 
 %% Loop through all VOCALS-REx files and load all vertical profiles
 
+
+% Read all the file names
+
 % Macbook folder name
-foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/vocals_rex_data/';
+foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/'...
+    'VOCALS_REx/vocals_rex_data/SPS_1/'];
 
 % read all file names in the above listed folder
 folder_contents = dir(foldername);
@@ -49,20 +53,30 @@ end
 
 
 
+%% Read each data set and find vertical profiles
 
-
+% --------------------------------------------------------
+% ---------- Define the profile thresholds --------------
+% --------------------------------------------------------
 
 % define the LWC threshold
-LWC_threshold = 0.03;       % g/m^3
+ensemble_profiles.inputs.LWC_threshold = 0.005;       % g/m^3
 
 % do you want to cut off the profile at the maximum LWC value?
-stop_at_max_LWC = false;
+ensemble_profiles.inputs.stop_at_max_LWC = false;
 
 % define the total number concentration threshold
-Nc_threshold = 1;       %  #-droplets/cm^3
+ensemble_profiles.inputs.Nc_threshold = 1;       %  #-droplets/cm^3
 
+% if sorting for precipitation, provide a drizzle/precip threshold.
+ensemble_profiles.sort_for_precip_driz = true;
 
+% the logic flag below tells the code to use either profiles with
+% precipitation or those without
+ensemble_profiles.keep_precip_drizzle_profiles = false;             % if false, keep non-precip profiles only
 
+% The threshold is defined as the total 2DC LWP
+ensemble_profiles.precip_driz_threshold = 1;         % g/m^2
 
 % Load data
 
@@ -73,39 +87,181 @@ for nn = 1:length(filename)
     vocalsRex = readVocalsRex([foldername,filename{nn}]);
 
     % find the vertical profiles
-    vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC, Nc_threshold);
+    vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, ensemble_profiles.inputs.LWC_threshold,...
+        ensemble_profiles.inputs.stop_at_max_LWC, ensemble_profiles.inputs.Nc_threshold);
 
-    % grab just the variables of interest for from each vertical profile
-    if nn==1
+    if ensemble_profiles.sort_for_precip_driz == true
+        % sort profiles into those with drizzle/precipitaiton and those without
+        % The index below indicates with profiles meet the threshold
+        % requirements for precipitation
+        index_precip_drizzle = sort_vert_profs_for_precipitation(vert_profs, ensemble_profiles.precip_driz_threshold);
+        % Do you wish to keep the profiles with precipitation or those
+        % without?
+        if ensemble_profiles.keep_precip_drizzle_profiles==false
+            % We want the index values that only pertain to
+            % non-precipitating profiles
+            index_precip_drizzle = setxor((1:length(vert_profs.lwc)), index_precip_drizzle);
+        end
 
-        ensemble_profiles.altitude = vert_profs.altitude;
-        ensemble_profiles.tau = vert_profs.tau;
-        ensemble_profiles.re = vert_profs.re;
-        ensemble_profiles.lwc = vert_profs.lwc;
-        ensemble_profiles.Nc = vert_profs.Nc;
-        ensemble_profiles.time = vert_profs.time;
+
+        % grab just the variables of interest for from each vertical profile
+        if nn==1
+
+            % we only have droplet effective radius from both instruments if the 2DC
+            % data is non-zero
+            if vert_profs.flag_2DC_data_is_conforming==true
+
+                % then we have an effective radius that uses data from both instruments
+                ensemble_profiles.re = vert_profs.re(index_precip_drizzle);                          % both instruments
+                % and we have an effective radius from just the 2DC data
+                ensemble_profiles.re_2DC = vert_profs.re_2DC(index_precip_drizzle);                   % from the 2DC instrument only
+
+            else
+
+                % we don't have an effective radius for the 2DC data
+                % What we we have is the first moment
+                ensemble_profiles.mean_r_2DC = vert_profs.mean_r_2DC(index_precip_drizzle);            % from the 2DC instrument only
+
+            end
+
+            ensemble_profiles.altitude = vert_profs.altitude(index_precip_drizzle);
+            ensemble_profiles.tau = vert_profs.tau(index_precip_drizzle);
+            ensemble_profiles.re_CDP = vert_profs.re_CDP(index_precip_drizzle);      
+            ensemble_profiles.lwc = vert_profs.lwc(index_precip_drizzle);
+            ensemble_profiles.lwc_CDP = vert_profs.lwc_CDP(index_precip_drizzle);
+            ensemble_profiles.lwc_2DC = vert_profs.lwc_2DC(index_precip_drizzle);
+            ensemble_profiles.Nc = vert_profs.Nc(index_precip_drizzle);
+            ensemble_profiles.time = vert_profs.time(index_precip_drizzle);
+
+        else
+
+
+            % we only have droplet effective radius from both instruments if the 2DC
+            % data is non-zero
+            if vert_profs.flag_2DC_data_is_conforming==true
+
+                % then we have an effective radius that uses data from both instruments
+                ensemble_profiles.re = [ensemble_profiles.re, vert_profs.re(index_precip_drizzle)];                          % both instruments
+                % and we have an effective radius from just the 2DC data
+                ensemble_profiles.re_2DC = [ensemble_profiles.re_2DC, vert_profs.re_2DC(index_precip_drizzle)];        % from the 2DC instrument only
+                
+                % Store all the other variables
+
+                ensemble_profiles.altitude = [ensemble_profiles.altitude, vert_profs.altitude(index_precip_drizzle)];
+                ensemble_profiles.tau = [ensemble_profiles.tau, vert_profs.tau(index_precip_drizzle)];
+                ensemble_profiles.re_CDP = [ensemble_profiles.re_CDP, vert_profs.re_CDP(index_precip_drizzle)];
+                ensemble_profiles.lwc = [ensemble_profiles.lwc, vert_profs.lwc(index_precip_drizzle)];
+                ensemble_profiles.lwc_CDP = [ensemble_profiles.lwc_CDP, vert_profs.lwc_CDP(index_precip_drizzle)];
+                ensemble_profiles.lwc_2DC = [ensemble_profiles.lwc_2DC, vert_profs.lwc_2DC(index_precip_drizzle)];
+                ensemble_profiles.Nc = [ensemble_profiles.Nc, vert_profs.Nc(index_precip_drizzle)];
+                ensemble_profiles.time = [ensemble_profiles.time, vert_profs.time(index_precip_drizzle)];
+
+            else
+
+                % we don't have an effective radius for the 2DC data
+                % What we we have is the first moment
+                % FOR NOW - STORE THE CDP RE DATA AS THE RE DATA
+                % THIS IS JUSTIFIED ONLY IF THE 2DC THRESHOLD IS SET TO A
+                % VERY LOW VALUE
+                
+                % check to see if this field exists
+                if isfield(ensemble_profiles, 'mean_r_2DC')==true
+
+                    ensemble_profiles.mean_r_2DC = [ensemble_profiles.mean_r_2DC, vert_profs.mean_r_2DC(index_precip_drizzle)];            % from the 2DC instrument only
+
+                else
+
+                    ensemble_profiles.mean_r_2DC = vert_profs.mean_r_2DC(index_precip_drizzle);
+                    
+                end
+                
+                % set the overall effective radius to be only the CDP
+                % calculated effective radius
+                ensemble_profiles.re = [ensemble_profiles.re, vert_profs.re_CDP(index_precip_drizzle)];                          % both instruments
+                                
+                ensemble_profiles.altitude = [ensemble_profiles.altitude, vert_profs.altitude(index_precip_drizzle)];
+                ensemble_profiles.tau = [ensemble_profiles.tau, vert_profs.tau(index_precip_drizzle)];
+                ensemble_profiles.re_CDP = [ensemble_profiles.re_CDP, vert_profs.re_CDP(index_precip_drizzle)];
+                ensemble_profiles.lwc = [ensemble_profiles.lwc, vert_profs.lwc(index_precip_drizzle)];
+                ensemble_profiles.lwc_CDP = [ensemble_profiles.lwc_CDP, vert_profs.lwc_CDP(index_precip_drizzle)];
+                ensemble_profiles.lwc_2DC = [ensemble_profiles.lwc_2DC, vert_profs.lwc_2DC(index_precip_drizzle)];
+                ensemble_profiles.Nc = [ensemble_profiles.Nc, vert_profs.Nc(index_precip_drizzle)];
+                ensemble_profiles.time = [ensemble_profiles.time, vert_profs.time(index_precip_drizzle)];
+            
+            end
+
+            
+
+        end
 
     else
 
-        ensemble_profiles.altitude = [ensemble_profiles.altitude, vert_profs.altitude];
-        ensemble_profiles.tau = [ensemble_profiles.tau, vert_profs.tau];
-        ensemble_profiles.re = [ensemble_profiles.re, vert_profs.re];
-        ensemble_profiles.lwc = [ensemble_profiles.lwc, vert_profs.lwc];
-        ensemble_profiles.Nc = [ensemble_profiles.Nc, vert_profs.Nc];
-        ensemble_profiles.time = [ensemble_profiles.time, vert_profs.time];
+        % grab just the variables of interest for from each vertical profile
+        if nn==1
+
+            ensemble_profiles.altitude = vert_profs.altitude;
+            ensemble_profiles.tau = vert_profs.tau;
+            ensemble_profiles.re = vert_profs.re;
+            ensemble_profiles.re_CDP = vert_profs.re_CDP;
+            ensemble_profiles.re_2DC = vert_profs.re_2DC;
+            ensemble_profiles.lwc = vert_profs.lwc;
+            ensemble_profiles.lwc_CDP = vert_profs.lwc_CDP;
+            ensemble_profiles.lwc_2DC = vert_profs.lwc_2DC;
+            ensemble_profiles.Nc = vert_profs.Nc;
+            ensemble_profiles.time = vert_profs.time;
+
+        else
+
+            ensemble_profiles.altitude = [ensemble_profiles.altitude, vert_profs.altitude];
+            ensemble_profiles.tau = [ensemble_profiles.tau, vert_profs.tau];
+            ensemble_profiles.re = [ensemble_profiles.re, vert_profs.re];
+            ensemble_profiles.re_CDP = [ensemble_profiles.re_CDP, vert_profs.re_CDP];
+            ensemble_profiles.re_2DC = [ensemble_profiles.re_2DC, vert_profs.re_2DC];
+            ensemble_profiles.lwc = [ensemble_profiles.lwc, vert_profs.lwc];
+            ensemble_profiles.lwc_CDP = [ensemble_profiles.lwc_CDP, vert_profs.lwc_CDP];
+            ensemble_profiles.lwc_2DC = [ensemble_profiles.lwc_2DC, vert_profs.lwc_2DC];
+            ensemble_profiles.Nc = [ensemble_profiles.Nc, vert_profs.Nc];
+            ensemble_profiles.time = [ensemble_profiles.time, vert_profs.time];
+
+        end
 
     end
 
 
 end
 
-% store the LWC threshold
 
-ensemble_profiles.lwc_threshold = LWC_threshold;
 
 % save the ensemble profiles
-save([foldername,'ensemble_profiles_from_',num2str(length(filename)), '_files.mat'],...
-    'ensemble_profiles', 'filename')
+if ensemble_profiles.sort_for_precip_driz==true
+
+    if ensemble_profiles.keep_precip_drizzle_profiles==true
+
+
+
+        save([foldername,'ensemble_profiles_with_precip_from_',num2str(length(filename)), '_files_LWC-threshold_',...
+            num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
+            num2str(ensemble_profiles.inputs.Nc_threshold), '_',char(datetime("today")),'.mat'],...
+            'ensemble_profiles', 'filename')
+
+    else
+
+        save([foldername,'ensemble_profiles_without_precip_from_',num2str(length(filename)), '_files_LWC-threshold_',...
+            num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
+            num2str(ensemble_profiles.inputs.Nc_threshold), '_',char(datetime("today")),'.mat'],...
+            'ensemble_profiles', 'filename')
+
+    end
+
+else
+
+
+    save([foldername,'ensemble_profiles_from_',num2str(length(filename)), '_files_LWC-threshold_',...
+        num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
+        num2str(ensemble_profiles.inputs.Nc_threshold), '_',char(datetime("today")),'.mat'],...
+        'ensemble_profiles', 'filename')
+
+end
 
 
 
@@ -693,7 +849,7 @@ set(gcf, 'Position', [0 0 650 600])
 
 %% Make a subplot showing the median profile of droplet size, liquid water content and number concentration
 
-figure; 
+figure;
 
 % plot the median effective radius
 subplot(1,3,1)
@@ -737,7 +893,9 @@ xlabel('$<LWC(z)>$ $(g/m^{3})$', 'Interpreter','latex')
 ylabel('Normalized Optical Depth')
 
 % set the figure title
-title('Median Profiles')
+title(['Median Profiles:  $LWC \geq$', num2str(ensemble_profiles.inputs.LWC_threshold), ' $g/m^{3}$',...
+    '   $N_c \geq$',  num2str(ensemble_profiles.inputs.Nc_threshold), ' $cm^{-3}$'],...
+    'Interpreter','latex')
 
 
 
@@ -767,7 +925,7 @@ set(gcf, 'Position', [0 0 1200 625])
 
 %% What is the average difference between cloud top and cloud bottom radii?
 
-% I've broken up all of the data into vertical segments. 
+% I've broken up all of the data into vertical segments.
 % What is the average radius value for the bottom most segment?
 re_top_median = mean(vertically_segmented_attributes{1,1});
 re_bottom_median = median(vertically_segmented_attributes{end,1});
@@ -781,3 +939,159 @@ end
 
 
 
+%% Look at vertical profiles with different LWP regimes
+
+
+% First plot all of LWP to determine what regimes to plot
+
+LWP = zeros(1, length(ensemble_profiles.lwc));
+
+for nn = 1:length(ensemble_profiles.lwc)
+
+    LWP(nn) = abs(trapz(ensemble_profiles.altitude{nn}, ensemble_profiles.lwc{nn}));
+
+end
+
+figure; plot(LWP, '.')
+grid on; grid minor
+xlabel('Profile Index')
+ylabel('LWP (g/m^2)')
+
+
+% Let's find the profiles with a total LWP < 20 g/m^2
+
+index_20 = LWP<=20;
+
+plot_median_ensemble_LWC_re_NC_vs_altitude(ensemble_profiles, index_20)
+
+% Create textbox
+annotation('textbox',[0.866 0.9376 0.1115 0.0527],'String',{'LWP<20 g/m^2'},...
+    'FontSize',18,...
+    'FontName','Helvetica Neue',...
+    'FitBoxToText','off');
+
+
+% Let's find the profiles with a total LWP >20 and <50 g/m^2
+
+index_50 = LWP>20 & LWP<=50;
+
+plot_median_ensemble_LWC_re_NC_vs_altitude(ensemble_profiles, index_50)
+
+annotation('textbox',[0.866 0.9376 0.1115 0.0527],'String',{'20<LWP<50 g/m^2'},...
+    'FontSize',18,...
+    'FontName','Helvetica Neue',...
+    'FitBoxToText','off');
+
+
+
+% Let's find the profiles with a total LWP >50 and <100 g/m^2
+
+index_100 = LWP>50 & LWP<=100;
+
+plot_median_ensemble_LWC_re_NC_vs_altitude(ensemble_profiles, index_100)
+
+annotation('textbox',[0.866 0.9376 0.1115 0.0527],'String',{'50<LWP<100 g/m^2'},...
+    'FontSize',18,...
+    'FontName','Helvetica Neue',...
+    'FitBoxToText','off');
+
+
+%% Plot the median droplet size profile for several different LWP regimes
+
+
+% Compute the LWP for each profile
+LWP = zeros(1, length(ensemble_profiles.lwc));
+
+for nn = 1:length(ensemble_profiles.lwc)
+
+    LWP(nn) = abs(trapz(ensemble_profiles.altitude{nn}, ensemble_profiles.lwc{nn}));
+
+end
+
+
+% Define the LWP regimes
+% LWP_bin_edges = [22, 50, 90, 140];      % g/m^2
+LWP_bin_edges = [0, 20, 40, 62, 100, 140];      % g/m^2
+
+index_regime = false(length(LWP_bin_edges), length(LWP));
+legend_str = cell(1, length(LWP_bin_edges));
+
+for nn = 1:length(LWP_bin_edges)
+
+
+    if nn>=1 && nn<length(LWP_bin_edges)
+
+        index_regime(nn,:) = LWP>=LWP_bin_edges(nn) & LWP<LWP_bin_edges(nn+1);
+
+        % Define the legend string
+        legend_str{nn} = [num2str(LWP_bin_edges(nn)),'$\leq LWP<$', num2str(LWP_bin_edges(nn+1))];
+
+    else
+        index_regime(nn,:) = LWP>LWP_bin_edges(nn);
+
+        % define the legend string
+        legend_str{nn} = ['$LWP>$', num2str(LWP_bin_edges(nn)), ' $g/m^{2}$'];
+
+    end
+
+end
+
+
+% define the changing variable for the plot
+changing_variable = 'LWP';
+
+
+% Combine all these indices and plot the indexed median profiles
+plot_multiple_median_ensemble_LWC_re_NC_vs_altitude(ensemble_profiles, index_regime,...
+    changing_variable, legend_str)
+
+
+
+
+%% Plot the median droplet size profile for several different optical depth regimes
+
+
+% find the cloud optical depth for each profile
+tau = zeros(1, length(ensemble_profiles.lwc));
+
+for nn = 1:length(ensemble_profiles.tau)
+
+    tau(nn) = ensemble_profiles.tau{nn}(end);
+
+end
+
+
+% Define the optical depth regimes
+tau_bin_edges = [0, 5, 9, 14, 21, 30];      % g/m^2
+
+index_regime = false(length(tau_bin_edges), length(tau));
+legend_str = cell(1, length(tau_bin_edges));
+
+for nn = 1:length(tau_bin_edges)
+
+
+    if nn>=1 && nn<length(tau_bin_edges)
+
+        index_regime(nn,:) = tau>=tau_bin_edges(nn) & tau<tau_bin_edges(nn+1);
+
+        % Define the legend string
+        legend_str{nn} = [num2str(tau_bin_edges(nn)),'$\leq \tau <$', num2str(tau_bin_edges(nn+1))];
+
+    else
+        index_regime(nn,:) = tau>tau_bin_edges(nn);
+
+        % define the legend string
+        legend_str{nn} = ['$\tau >$', num2str(tau_bin_edges(nn))];
+
+    end
+
+end
+
+
+% define the changing variable for the plot
+changing_variable = '$\tau$';
+
+
+% Combine all these indices and plot the indexed median profiles
+plot_multiple_median_ensemble_LWC_re_NC_vs_altitude(ensemble_profiles, index_regime,...
+    changing_variable, legend_str)

@@ -1,22 +1,33 @@
 %% Load some VOCALS-REx Data
 
+% Define the folder where all VOCALS-REx data is stored
+foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/', ...
+    'VOCALS_REx/vocals_rex_data/SPS_1/'];
+
+
+% Oct-15-2008 Data
+%filename = 'RF01.20081015.164800_201200.PNI.nc';
+
 % Oct-18-2008 Data
-% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_10_18/';
-% filename = 'RF02.20081018.130300_213000.PNI.nc';
+%filename = 'RF02.20081018.130300_213000.PNI.nc';
+
+% Oct-21-2008 Data
+%filename = 'RF03.20081021.060000_142400.PNI.nc';
 
 % Oct-25-2008 Data
-% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_10_25/';
 % filename = 'RF05.20081025.062900_152500.PNI.nc';
 
 % ----- November 9 data -----
-% foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_09/';
-% filename = 'RF11.20081109.125700_213600.PNI.nc';
+%filename = 'RF11.20081109.125700_213600.PNI.nc';
 
-% November 11, 2008 data
-foldername = '/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/VOCALS_REx/2008_11_11/';
-filename = 'RF12.20081111.125000_214500.PNI.nc';
+% ------ November 11 data -----
+%filename = 'RF12.20081111.125000_214500.PNI.nc';
 
+% ----- November 13 data -----
+filename = 'RF13.20081113.125700_215700.PNI.nc';
 
+% ----- November 15 data -----
+%filename = 'RF14.20081115.125800_220400.PNI.nc';
 
 
 
@@ -26,9 +37,10 @@ filename = 'RF12.20081111.125000_214500.PNI.nc';
 vocalsRex = readVocalsRex([foldername,filename]);
 
 % find vertical profiles
-LWC_threshold = 0.02;       % g/m^3
+LWC_threshold = 0.005;       % g/m^3
 stop_at_max_LWC = false;
-vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC);
+Nc_threshold = 1;           % cm^{-3}
+vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC, Nc_threshold);
 
 %% Plot the VOCALS-REx flight path
 

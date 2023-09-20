@@ -42,10 +42,18 @@ function [vert_profs] = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshol
 % content threshold that is required to deem it a vertical profile.
 consecutive_length_threshold = 5;
 
+% Store whether or not the 2DC was conforming
+vert_profs.flag_2DC_data_is_conforming = vocalsRex.flag_2DC_data_is_conforming;
 
 % Let's also store the time vector in UTC format
 
 UTC_starttime = vocalsRex.startTime(1) + vocalsRex.startTime(2)/60;   % hours.decimalhours in UTC format
+
+% IF the CDP data was sampled at 10Hz, make a time vector to use for
+% indexing
+if length(vocalsRex.re_CDP)>length(vocalsRex.time)
+    time_sps10 = linspace(vocalsRex.time(1), vocalsRex.time(end), length(vocalsRex.re_CDP));
+end
 
 
 % ---- Vertical Profile Requirements ----
@@ -83,6 +91,9 @@ index_consec = find(diff(index_ascend_or_descend)~=1);
 index_consec = [0, index_consec];
 
 
+% store the total number of droplets in each bin to calculate the LWC for
+% each instrument
+Nc_per_bin = cell(1, length(index_consec)-1);
 
 % -----------------------------------------------------------------------
 % For each break in the data, create a profile
@@ -90,6 +101,12 @@ for ii = 1:length(index_consec)-1
 
     % read in the total number of droplets per unit volume
     vert_profs.Nc{ii} = vocalsRex.total_Nc(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    vert_profs.Nc_CDP{ii} = vocalsRex.total_Nc_CDP(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    vert_profs.Nc_2DC{ii} = vocalsRex.total_Nc_2DC(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+
+    % read in the total number of droplets for each size bin, but there is
+    % no need to store this variable
+    Nc_per_bin{ii} = vocalsRex.Nc(:,index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))));
 
     % read in the number of droplets for each size bin, and divide by the
     % width of the size bin to estimate the droplet distribution
@@ -98,15 +115,38 @@ for ii = 1:length(index_consec)-1
 
     vert_profs.time{ii} = vocalsRex.time(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.time_utc{ii} = UTC_starttime + double(vert_profs.time{ii})./3600;
-    vert_profs.lwc{ii} = vocalsRex.lwc(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.latitude{ii} = vocalsRex.latitude(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.longitude{ii} = vocalsRex.longitude(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
     vert_profs.altitude{ii} = vocalsRex.altitude(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.re{ii} = vocalsRex.re(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.SWT{ii} = vocalsRex.SWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.SWB{ii} = vocalsRex.SWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.LWT{ii} = vocalsRex.LWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    vert_profs.LWB{ii} = vocalsRex.LWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+
+    if vocalsRex.flag_2DC_data_is_conforming==true
+        vert_profs.re{ii} = vocalsRex.re(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+        vert_profs.re_2DC{ii} = vocalsRex.re_2DC(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    else
+        vert_profs.mean_r_2DC{ii} = vocalsRex.mean_r_2DC(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    end
+
+    % check to see if the CDP data was sampled at 1Hz or 10 Hz
+    if length(vocalsRex.re_CDP)>length(vocalsRex.time)
+        % CDP data sampled at 10Hz
+        indices_sps10 = time_sps10>=vert_profs.time{ii}(1) & time_sps10<=vert_profs.time{ii}(end);
+        vert_profs.re_CDP{ii} = vocalsRex.re_CDP(indices_sps10)';
+        vert_profs.lwc_CDP{ii} = vocalsRex.lwc_CDP(indices_sps10)';
+    else
+        % CDP data sampled at 1Hz
+        vert_profs.re_CDP{ii} = vocalsRex.re_CDP(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+        vert_profs.lwc_CDP{ii} = vocalsRex.lwc_CDP(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    end
+
+    vert_profs.lwc{ii} = vocalsRex.lwc(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    vert_profs.lwc_2DC{ii} = vocalsRex.lwc_2DC(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+
+
+    % ----------- These variables are not being used -----------------
+    %     vert_profs.SWT{ii} = vocalsRex.SWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     vert_profs.SWB{ii} = vocalsRex.SWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     vert_profs.LWT{ii} = vocalsRex.LWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     vert_profs.LWB{ii} = vocalsRex.LWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
 
 end
 
@@ -146,6 +186,7 @@ end
 
 % Let's delete all cells that met the above conditions
 vert_profs.Nc(index2delete) = [];
+Nc_per_bin(index2delete) = [];
 vert_profs.nr(index2delete) = [];
 vert_profs.time(index2delete) = [];
 vert_profs.time_utc(index2delete) = [];
@@ -153,11 +194,25 @@ vert_profs.lwc(index2delete) = [];
 vert_profs.latitude(index2delete) = [];
 vert_profs.longitude(index2delete) = [];
 vert_profs.altitude(index2delete) = [];
-vert_profs.re(index2delete) = [];
-vert_profs.SWT(index2delete) = [];
-vert_profs.SWB(index2delete) = [];
-vert_profs.LWT(index2delete) = [];
-vert_profs.LWB(index2delete) = [];
+
+if vocalsRex.flag_2DC_data_is_conforming==true
+    vert_profs.re(index2delete) = [];
+    vert_profs.re_2DC(index2delete) = [];
+else
+    vert_profs.mean_r_2DC(index2delete) = [];
+end
+
+vert_profs.re_CDP(index2delete) = [];
+vert_profs.lwc_CDP(index2delete) = [];
+vert_profs.lwc_2DC(index2delete) = [];
+vert_profs.Nc_CDP(index2delete) = [];
+vert_profs.Nc_2DC(index2delete) = [];
+
+% ----------- These variables are not being used -----------------
+% vert_profs.SWT(index2delete) = [];
+% vert_profs.SWB(index2delete) = [];
+% vert_profs.LWT(index2delete) = [];
+% vert_profs.LWB(index2delete) = [];
 
 
 
@@ -358,6 +413,7 @@ for ii = 1:length(vert_profs.lwc)
     if isempty(indexes2keep)==true
 
         vert_profs.Nc{ii} = 0;
+        Nc_per_bin{ii} = 0;
         vert_profs.nr{ii} = 0;
         vert_profs.time{ii} = 0;
         vert_profs.time_utc{ii} = 0;
@@ -365,11 +421,26 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.latitude{ii} = 0;
         vert_profs.longitude{ii} = 0;
         vert_profs.altitude{ii} = 0;
-        vert_profs.re{ii} = 0;
-        vert_profs.SWT{ii} = 0;
-        vert_profs.SWB{ii} = 0;
-        vert_profs.LWT{ii} = 0;
-        vert_profs.LWB{ii} = 0;
+
+        if vocalsRex.flag_2DC_data_is_conforming==true
+            vert_profs.re{ii} = 0;
+            vert_profs.re_2DC{ii} = 0;
+        else
+            vert_profs.mean_r_2DC{ii} = 0;
+        end
+
+
+        vert_profs.re_CDP{ii} = 0;
+        vert_profs.lwc_CDP{ii} = 0;
+        vert_profs.lwc_2DC{ii} = 0;
+        vert_profs.Nc_CDP{ii} = 0;
+        vert_profs.Nc_2DC{ii} = 0;
+
+        % ----------- These variables are not being used -----------------
+        %         vert_profs.SWT{ii} = 0;
+        %         vert_profs.SWB{ii} = 0;
+        %         vert_profs.LWT{ii} = 0;
+        %         vert_profs.LWB{ii} = 0;
 
 
         % if the longest consecutive vector of measurements above the
@@ -380,6 +451,7 @@ for ii = 1:length(vert_profs.lwc)
     elseif length(firstIndex:lastIndex)<consecutive_length_threshold
 
         vert_profs.Nc{ii} = 0;
+        Nc_per_bin{ii} = 0;
         vert_profs.nr{ii} = 0;
         vert_profs.time{ii} = 0;
         vert_profs.time_utc{ii} = 0;
@@ -387,11 +459,25 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.latitude{ii} = 0;
         vert_profs.longitude{ii} = 0;
         vert_profs.altitude{ii} = 0;
-        vert_profs.re{ii} = 0;
-        vert_profs.SWT{ii} = 0;
-        vert_profs.SWB{ii} = 0;
-        vert_profs.LWT{ii} = 0;
-        vert_profs.LWB{ii} = 0;
+
+        if vocalsRex.flag_2DC_data_is_conforming==true
+            vert_profs.re{ii} = 0;
+            vert_profs.re_2DC{ii} = 0;
+        else
+            vert_profs.mean_r_2DC{ii} = 0;
+        end
+
+        vert_profs.re_CDP{ii} = 0;
+        vert_profs.lwc_CDP{ii} = 0;
+        vert_profs.lwc_2DC{ii} = 0;
+        vert_profs.Nc_CDP{ii} = 0;
+        vert_profs.Nc_2DC{ii} = 0;
+
+        % ----------- These variables are not being used -----------------
+        %         vert_profs.SWT{ii} = 0;
+        %         vert_profs.SWB{ii} = 0;
+        %         vert_profs.LWT{ii} = 0;
+        %         vert_profs.LWB{ii} = 0;
 
 
 
@@ -401,6 +487,7 @@ for ii = 1:length(vert_profs.lwc)
         % delete all time-stamped data that meet the above logical statement
 
         vert_profs.Nc{ii} = vert_profs.Nc{ii}(firstIndex:lastIndex);
+        Nc_per_bin{ii} = Nc_per_bin{ii}(:,firstIndex:lastIndex);
         vert_profs.nr{ii} = vert_profs.nr{ii}(:, firstIndex:lastIndex);
         vert_profs.time{ii} = vert_profs.time{ii}(firstIndex:lastIndex);
         vert_profs.time_utc{ii} = vert_profs.time_utc{ii}(firstIndex:lastIndex);
@@ -408,11 +495,31 @@ for ii = 1:length(vert_profs.lwc)
         vert_profs.latitude{ii} = vert_profs.latitude{ii}(firstIndex:lastIndex);
         vert_profs.longitude{ii} = vert_profs.longitude{ii}(firstIndex:lastIndex);
         vert_profs.altitude{ii} = vert_profs.altitude{ii}(firstIndex:lastIndex);
-        vert_profs.re{ii} = vert_profs.re{ii}(firstIndex:lastIndex);
-        vert_profs.SWT{ii} = vert_profs.SWT{ii}(firstIndex:lastIndex);
-        vert_profs.SWB{ii} = vert_profs.SWB{ii}(firstIndex:lastIndex);
-        vert_profs.LWT{ii} = vert_profs.LWT{ii}(firstIndex:lastIndex);
-        vert_profs.LWB{ii} = vert_profs.LWB{ii}(firstIndex:lastIndex);
+
+        if vocalsRex.flag_2DC_data_is_conforming==true
+            vert_profs.re{ii} = vert_profs.re{ii}(firstIndex:lastIndex);
+            vert_profs.re_2DC{ii} = vert_profs.re_2DC{ii}(firstIndex:lastIndex);
+        else
+            vert_profs.mean_r_2DC{ii} = vert_profs.mean_r_2DC{ii}(firstIndex:lastIndex);
+        end
+
+        % check to see if were dealing with SPS1 of SPS10 data
+        if length(vocalsRex.re_CDP)>length(vocalsRex.time)
+            error([newline, 'I dont know how to handle SPS10 data.', newline])
+        else
+            vert_profs.re_CDP{ii} = vert_profs.re_CDP{ii}(firstIndex:lastIndex);
+            vert_profs.lwc_CDP{ii} = vert_profs.lwc_CDP{ii}(firstIndex:lastIndex);
+        end
+
+        vert_profs.lwc_2DC{ii} = vert_profs.lwc_2DC{ii}(firstIndex:lastIndex);
+        vert_profs.Nc_CDP{ii} = vert_profs.Nc_CDP{ii}(firstIndex:lastIndex);
+        vert_profs.Nc_2DC{ii} = vert_profs.Nc_2DC{ii}(firstIndex:lastIndex);
+
+        % ----------- These variables are not being used -----------------
+        %         vert_profs.SWT{ii} = vert_profs.SWT{ii}(firstIndex:lastIndex);
+        %         vert_profs.SWB{ii} = vert_profs.SWB{ii}(firstIndex:lastIndex);
+        %         vert_profs.LWT{ii} = vert_profs.LWT{ii}(firstIndex:lastIndex);
+        %         vert_profs.LWB{ii} = vert_profs.LWB{ii}(firstIndex:lastIndex);
 
 
     end
@@ -465,6 +572,7 @@ if sum(profile_idx_2delete)>0
     % delete all time-stamped data that meet the above logical statement
 
     vert_profs.Nc(profile_idx_2delete) = [];
+    Nc_per_bin(profile_idx_2delete) = [];
     vert_profs.nr(profile_idx_2delete) = [];
     vert_profs.time(profile_idx_2delete) = [];
     vert_profs.time_utc(profile_idx_2delete) = [];
@@ -472,18 +580,167 @@ if sum(profile_idx_2delete)>0
     vert_profs.latitude(profile_idx_2delete) = [];
     vert_profs.longitude(profile_idx_2delete) = [];
     vert_profs.altitude(profile_idx_2delete) = [];
-    vert_profs.re(profile_idx_2delete) = [];
-    vert_profs.SWT(profile_idx_2delete) = [];
-    vert_profs.SWB(profile_idx_2delete) = [];
-    vert_profs.LWT(profile_idx_2delete) = [];
-    vert_profs.LWB(profile_idx_2delete) = [];
+
+    if vocalsRex.flag_2DC_data_is_conforming==true
+        vert_profs.re(profile_idx_2delete) = [];
+        vert_profs.re_2DC(profile_idx_2delete) = [];
+    else
+        vert_profs.mean_r_2DC(profile_idx_2delete) = [];
+    end
+
+
+    vert_profs.re_CDP(profile_idx_2delete) = [];
+    vert_profs.lwc_CDP(profile_idx_2delete) = [];
+    vert_profs.lwc_2DC(profile_idx_2delete) = [];
+    vert_profs.Nc_CDP(profile_idx_2delete) = [];
+    vert_profs.Nc_2DC(profile_idx_2delete) = [];
+
+    % ----------- These variables are not being used -----------------
+    %     vert_profs.SWT(profile_idx_2delete) = [];
+    %     vert_profs.SWB(profile_idx_2delete) = [];
+    %     vert_profs.LWT(profile_idx_2delete) = [];
+    %     vert_profs.LWB(profile_idx_2delete) = [];
 
 end
 
 
+% ----------------------------------------------------------------------
+% ----------------------------------------------------------------------
 
 % Store the LWC threshold used
-vert_profs.lwc_threshold = LWC_threshold;            % g/m^3
+vert_profs.LWC_threshold = LWC_threshold;            % g/m^3
+
+% Store the Nc threshold used
+vert_profs.Nc_threshold = Nc_threshold;            % g/m^3
+
+
+
+
+
+
+% ----------------------------------------------------------------------
+% ------------------ Compute Liquid Water Path -------------------------
+% ----------------------------------------------------------------------
+
+
+
+% we want to compute the total LWP, and the LWP for the two instruments
+% used to measure droplets.
+% The CDP probe measures radii between 0.875 and 25.055 microns.
+% The 2DC probe measures radii between 31.25 and 793 microns
+
+if iscell(vert_profs.altitude)==true
+
+    num_profiles = length(vert_profs.altitude);
+
+
+    % step through each profile
+    for nn = 1:num_profiles
+
+
+        % LWP is calculated by integrating from cloud bottom to
+        % cloud top. If the plane decreases in altitude, we need to
+        % integrate from the end of the profile (cloud bottom) to the
+        % begining (cloud top). If the plane is ascending, we do
+        % the opposite.
+
+        dz_dt = diff(reshape(vert_profs.altitude{nn}, [],1))./diff(reshape(vert_profs.time{nn}, [], 1));
+
+        if mean(dz_dt)>0
+            % then the plane is ascending!
+
+            % Compute the total LWP
+            vert_profs.lwp{nn} = trapz(vert_profs.altitude{nn}, vert_profs.lwc{nn});            % g/m^2
+
+            % ------ Compute the CDP LWP ---------
+            vert_profs.lwp_CDP{nn} = trapz(vert_profs.altitude{nn}, vert_profs.lwc_CDP{nn});
+
+
+            % ------ Compute the 2DC LWP ---------
+            vert_profs.lwp_2DC{nn} = trapz(vert_profs.altitude{nn}, vert_profs.lwc_2DC{nn});
+
+
+        elseif mean(dz_dt)<0
+            % then the plane is descending!
+
+            % Compute the total LWP
+            vert_profs.lwp{nn} = trapz(flipud(vert_profs.altitude{nn}), flipud(vert_profs.lwc{nn}));            % g/m^2
+
+            % ------ Compute the CDP LWP ---------
+            vert_profs.lwp_CDP{nn} = trapz(flipud(vert_profs.altitude{nn}), flipud(vert_profs.lwc_CDP{nn}));
+
+
+            % ------ Compute the 2DC LWP ---------
+            % compute the 2DC LWP by integration over the cloud depth
+            vert_profs.lwp_2DC{nn} = trapz(flipud(vert_profs.altitude{nn}), flipud(vert_profs.lwc_2DC{nn}));
+
+
+
+
+
+        end
+
+
+
+    end
+
+
+
+
+else
+
+    % if vocalsRex is not a cell, then there is only one profile
+
+
+    % LWP is calculated by integrating from cloud bottom to
+    % cloud top. If the plane decreases in altitude, we need to
+    % integrate from the end of the profile (cloud bottom) to the
+    % begining (cloud top). If the plane is ascending, we do
+    % the opposite.
+
+    dz_dt = diff(reshape(vert_profs.altitude, [],1))./diff(reshape(vert_profs.time, [], 1));
+
+    if mean(dz_dt)>0
+        % then the plane is ascending!
+
+        % Compute the total LWP
+        vert_profs.lwp = trapz(vert_profs.altitude, vert_profs.lwc);            % g/m^2
+
+        % ------ Compute the CDP LWP ---------
+        % compute the CDP LWP by integration over the cloud depth
+        vert_profs.lwp_CDP = trapz(vert_profs.altitude, vert_profs.lwc_CDP);
+
+
+        % ------ Compute the 2DC LWP ---------
+        % compute the 2DC LWP by integration over the cloud depth
+        vert_profs.lwp_2DC = trapz(vert_profs.altitude, vert_profs.lwc_2DC);
+
+
+    elseif mean(dz_dt)<0
+        % then the plane is descending!
+
+        % Compute the total LWP
+        vert_profs.lwp = trapz(flipud(vert_profs.altitude), flipud(vert_profs.lwc));            % g/m^2
+
+        % ------ Compute the CDP LWP ---------
+        % compute the CDP LWP by integration over the cloud depth
+        vert_profs.lwp_CDP = trapz(flipud(vert_profs.altitude), flipud(vert_profs.lwc_CDP));
+
+
+        % ------ Compute the 2DC LWP ---------
+        % compute the 2DC LWP by integration over the cloud depth
+        vert_profs.lwp_2DC = trapz(flipud(vert_profs.altitude), flipud(vert_profs.lwc_2DC));
+
+
+
+
+
+    end
+
+
+
+
+end
 
 
 
@@ -532,7 +789,24 @@ if iscell(vert_profs.altitude)==true
 
                 % we have to convert Nc and re to have the same units as the alitude,
                 % which is in meters
-                re_meters = vert_profs.re{nn}(vector_length-ii:vector_length)./1e6;                      % meters
+
+                if vocalsRex.flag_2DC_data_is_conforming==true
+                    re_meters = vert_profs.re{nn}(vector_length-ii:vector_length)./1e6;                      % meters
+                else
+                    % What choice do we have? I guess we will just use the
+                    % effevtive radius from the 2DC data, but this will
+                    % underestimate the optical depth
+                    % if the re CDP data is taken at 10 samples per second,
+                    % only take every 10th value. 
+                    if length(vocalsRex.re_CDP)>length(vocalsRex.time)
+                        error([newline, 'I dont know how to handle SPS10 data!', newline])
+                    
+                    else
+                        re_meters = vert_profs.re_CDP{nn}(vector_length-ii:vector_length)./1e6;                      % meters
+                    end
+
+                end
+
                 total_Nc_meters = vert_profs.Nc{nn}(vector_length-ii:vector_length).*1e6;                           % #/m^3
                 altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length);
 
@@ -567,7 +841,15 @@ if iscell(vert_profs.altitude)==true
 
                 % we have to convert Nc and re to have the same units as the alitude,
                 % which is in meters
-                re_meters = vert_profs.re{nn}(1:ii+1)./1e6;                      % meters
+                if vocalsRex.flag_2DC_data_is_conforming==true
+                    re_meters = vert_profs.re{nn}(1:ii+1)./1e6;                      % meters
+                else
+                    % What choice do we have? I guess we will just use the
+                    % effevtive radius from the 2DC data, but this will
+                    % underestimate the optical depth
+                    re_meters = vert_profs.re_CDP{nn}(1:ii+1)./1e6;                      % meters
+                end
+
                 total_Nc_meters = vert_profs.Nc{nn}(1:ii+1).*1e6;                           % #/m^3
                 altitude = vert_profs.altitude{nn}(1) -  vert_profs.altitude{nn}(1:ii+1);
 
@@ -633,7 +915,15 @@ else
 
             % we have to convert Nc and re to have the same units as the alitude,
             % which is in meters
-            re_meters = vert_profs.re(vector_length-ii:vector_length)./1e6;                      % meters
+            if vocalsRex.flag_2DC_data_is_conforming==true
+                re_meters = vert_profs.re(vector_length-ii:vector_length)./1e6;                      % meters
+            else
+                % What choice do we have? I guess we will just use the
+                % effevtive radius from the 2DC data, but this will
+                % underestimate the optical depth
+                re_meters = vert_profs.re_CDP(vector_length-ii:vector_length)./1e6;                      % meters
+            end
+
             total_Nc_meters = vert_profs.Nc(vector_length-ii:vector_length).*1e6;                           % #/m^3
             altitude = vert_profs.altitude(end) -  vert_profs.altitude(vector_length-ii:vector_length);
 
@@ -670,7 +960,15 @@ else
 
         % we have to convert Nc and re to have the same units as the alitude,
         % which is in meters
-        re_meters = vert_profs.re(1:ii+1)./1e6;                      % meters
+        if vocalsRex.flag_2DC_data_is_conforming==true
+            re_meters = vert_profs.re(1:ii+1)./1e6;                      % meters
+        else
+            % What choice do we have? I guess we will just use the
+            % effevtive radius from the 2DC data, but this will
+            % underestimate the optical depth
+            re_meters = vert_profs.re_CDP(1:ii+1)./1e6;                     % meters
+        end
+
         total_Nc_meters = vert_profs.Nc(1:ii+1).*1e6;                           % #/m^3
         altitude = vert_profs.altitude(1) -  vert_profs.altitude(1:ii+1);
 

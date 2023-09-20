@@ -28,7 +28,6 @@ if N_curves<4
 
     for nn = 1:N_curves
 
-        tau = zeros(1, length(vert_profiles.altitude{indices(nn)}));
 
         % Profiles measured while the plane was descending will start with values
         % at the cloud top
@@ -37,27 +36,20 @@ if N_curves<4
             % This profile is ascending, meaning the first data points are at
             % the cloud bottom, when tau is largest, since tau is defined from
             % top to bottom
-            starting_idx = length(tau)+1;
 
-            % compute optical depth
-            % Let's assume the extinction coefficient is 2, meaning the radius is
-            % much larger than the incident light
-            for ii = length(vert_profiles.altitude{indices(nn)}):-1:2
-                tau(starting_idx-ii) = 1/2 * 1/density * trapz(vert_profiles.altitude{indices(nn)}(1:ii),...
-                    vert_profiles.lwc{indices(nn)}(1:ii)./(vert_profiles.re{indices(nn)}(1:ii)*1e-6));
-            end
+            % all stored tau vectors start from 0. So if the plane is
+            % ascending, we need to flip the tau vector
+            tau = flipud(reshape(vert_profiles.tau{nn}, [], 1));
+
+
 
         elseif (vert_profiles.altitude{indices(nn)}(end)-vert_profiles.altitude{indices(nn)}(1))<0
             % This profile is descending, meaning the first data points are
             % measured at cloud top
 
-            % compute optical depth
-            % Let's assume the extinction coefficient is 2, meaning the radius is
-            % much larger than the incident light
-            for ii = 2:length(vert_profiles.altitude{indices(nn)})
-                tau(ii) = -1/2 * 1/density * trapz(vert_profiles.altitude{indices(nn)}(1:ii),...
-                    vert_profiles.lwc{indices(nn)}(1:ii)./(vert_profiles.re{indices(nn)}(1:ii)*1e-6));
-            end
+            % in this case we don't flip the tau vector
+            tau = reshape(vert_profiles.tau{nn}, [], 1);
+
         end
 
 
@@ -71,13 +63,21 @@ if N_curves<4
 
         if normalize_opticalDepth==true
 
-            norm_tau = tau./tau(1);
+            norm_tau = tau./max(tau);
 
             ax1 = subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, norm_tau)
             hold on
 
             % next plot the effective radius
-            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
+            % if the 2DC data is compliant, plot the effective radius computed
+            % using both instruments
+            if vert_profiles.flag_2DC_data_is_conforming==true
+                ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
+            else
+                % if the 2DC data is non-conforming, use only the CDP data and
+                % make a note of it
+                ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, norm_tau);
+            end
             hold on
 
             % Finally, plot the total droplet number concentration
@@ -93,7 +93,15 @@ if N_curves<4
             hold on
 
             % next plot the effective radius
-            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
+            % if the 2DC data is compliant, plot the effective radius computed
+            % using both instruments
+            if vert_profiles.flag_2DC_data_is_conforming==true
+                ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
+            else
+                % if the 2DC data is non-conforming, use only the CDP data and
+                % make a note of it
+                ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, tau);
+            end
             hold on
 
             % Finally, plot the total droplet number concentration
@@ -121,27 +129,16 @@ else
             % This profile is ascending, meaning the first data points are at
             % the cloud bottom, when tau is largest, since tau is defined from
             % top to bottom
-            starting_idx = length(tau)+1;
-
-            % compute optical depth
-            % Let's assume the extinction coefficient is 2, meaning the radius is
-            % much larger than the incident light
-            for ii = length(vert_profiles.altitude{indices(nn)}):-1:2
-                tau(starting_idx-ii) = 1/2 * 1/density * trapz(vert_profiles.altitude{indices(nn)}(1:ii),...
-                    vert_profiles.lwc{indices(nn)}(1:ii)./(vert_profiles.re{indices(nn)}(1:ii)*1e-6));
-            end
+            % all stored tau vectors start from 0. So if the plane is
+            % ascending, we need to flip the tau vector
+            tau = flipud(reshape(vert_profiles.tau{nn}, [], 1));
 
         elseif (vert_profiles.altitude{indices(nn)}(end)-vert_profiles.altitude{indices(nn)}(1))<0
             % This profile is descending, meaning the first data points are
             % measured at cloud top
 
-            % compute optical depth
-            % Let's assume the extinction coefficient is 2, meaning the radius is
-            % much larger than the incident light
-            for ii = 2:length(vert_profiles.altitude{indices(nn)})
-                tau(ii) = -1/2 * 1/density * trapz(vert_profiles.altitude{indices(nn)}(1:ii),...
-                    vert_profiles.lwc{indices(nn)}(1:ii)./(vert_profiles.re{indices(nn)}(1:ii)*1e-6));
-            end
+            % in this case we don't flip the tau vector
+            tau = reshape(vert_profiles.tau{nn}, [], 1);
         end
 
 
@@ -161,7 +158,15 @@ else
             hold on
 
             % next plot the effective radius
-            ax2 = subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, norm_tau);
+            % if the 2DC data is compliant, plot the effective radius computed
+            % using both instruments
+            if vert_profiles.flag_2DC_data_is_conforming==true
+                ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_tau);
+            else
+                % if the 2DC data is non-conforming, use only the CDP data and
+                % make a note of it
+                ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, norm_tau);
+            end
             % Set the transparency to 50%
             %l.Color(4) = 0.5;
             hold on
@@ -183,7 +188,15 @@ else
             hold on
 
             % next plot the effective radius
-            ax2 = subplot(1,3,2); l = plot(vert_profiles.re{indices(nn)}, tau);
+            % if the 2DC data is compliant, plot the effective radius computed
+            % using both instruments
+            if vert_profiles.flag_2DC_data_is_conforming==true
+                ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, tau);
+            else
+                % if the 2DC data is non-conforming, use only the CDP data and
+                % make a note of it
+                ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, tau);
+            end
             % Set the transparency to 50%
             %l.Color(4) = 0.5;
             hold on
@@ -215,7 +228,13 @@ set(gca, 'ydir', 'reverse')
 grid on; grid minor;
 xlabel('$r_e$ ($\mu m$)', 'Interpreter','latex')
 % include a title in the middle plot
-title(['LWC $\geq$ ', num2str(vert_profiles.lwc_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
+if isfield(vert_profiles, 'LWC_threshold')==true
+    title(['LWC $\geq$ ', num2str(vert_profiles.LWC_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
+
+elseif isfield(vert_profiles.inputs, 'LWC_threshold')==true
+    title(['LWC $\geq$ ', num2str(vert_profiles.inputs.LWC_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
+
+end
 
 
 subplot(1,3,3)
@@ -224,7 +243,7 @@ grid on; grid minor;
 xlabel('$N_c$ ($cm^{-3}$)', 'Interpreter','latex')
 
 % set plot size
-set(gcf, 'Position', [0 0 1000 550])
+set(gcf, 'Position', [0 0 1200 650])
 
 % Link the vertical axes together so that when you zoom, all subplots have
 % the same limits

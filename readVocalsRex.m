@@ -33,6 +33,12 @@ num_concentration_CDP = ncread(filename, 'CCDP_RWO');          % #/cm^3 - number
 % find the variable information for the droplet concentration data
 CCDP_RWO_info = ncinfo(filename, 'CCDP_RWO');
 
+% ----- Check that the data quality is labeled 'Good' -----
+if strcmp(CCDP_RWO_info.Attributes(6).Value, 'Good')~= true
+    error([newline, 'CDP data quality listed as not good!', newline])
+end
+% -------
+
 % Bins are defined as diameters. Divide by 2 to get the radius
 drop_radius_bin_edges_CDP = double(CCDP_RWO_info.Attributes(10).Value./2);                        % microns
 
@@ -76,6 +82,14 @@ for nn = 1:length(info.Variables)
         % read in the 2DC variable info
         C1DCA_RPC_info = ncinfo(filename, 'C1DCA_RPC');
 
+        % Check to see if the data quality is labeled as 'Good'
+        if strcmp(C1DCA_RPC_info.Attributes(6).Value, 'Good')~=true
+
+            error([newline, 'The 2DC data quality is not listed as Good.', newline])
+
+        end
+
+
         % Grab the droplet size bins
         % These are the boundaries that define each bin size
         % Bins are defined as diameters. Divide by 2 to get the radius
@@ -83,7 +97,7 @@ for nn = 1:length(info.Variables)
 
         % The data tells us which bins to take
         for jj = 1:length(C1DCA_RPC_info.Attributes)
-            
+
             if strcmp(C1DCA_RPC_info.Attributes(jj).Name, 'FirstBin')==true
                 first_bin_2DC = double(C1DCA_RPC_info.Attributes(jj).Value);
             end
@@ -106,7 +120,7 @@ for nn = 1:length(info.Variables)
             % set it to be the length of drop_bin_edges
             last_bin_2DC = length(drop_radius_bin_edges_2DC)-1;
         end
-        
+
 
         drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
         drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
@@ -120,9 +134,19 @@ for nn = 1:length(info.Variables)
 
 end
 
-% if after the entire for loop this variable is not found, we will ingore
-% this data set. But we have to introduce some variables so the rest of the
-% code doesn't have to change
+
+% ------------------------- IMPORTANT ----------------------------------
+
+% if after the entire for loop this variable is not found, we will look for
+% another variable containg 2DC data. For some reason, certain data sets
+% don't have the variable listed above. Instead that usually have a
+% variable described as '2D-C Concentration, 260X Emulation (per cell)'.
+% But even this variable is sometimes empty! It's all rather confusing.
+% What I have found is that when the above 2DC variable is missing, the
+% variable C1DC_RPC often exists and the dependent variables of LWC and
+% mean droplet diameter are often populated with values. Let's download
+% these variables if the above variable is not found.
+
 
 
 if exist("num_concentration_2DC", 'var')==false
@@ -130,27 +154,163 @@ if exist("num_concentration_2DC", 'var')==false
 
     for nn = 1:length(info.Variables)
 
+
         if strcmp('C1DC_RPC', info.Variables(nn).Name)==true
 
 
             % read in the 2DC variable info
             C1DC_RPC_info = ncinfo(filename, 'C1DC_RPC');
+            % First check to make use the data quality is listed as 'Good'.
+            % If it is, then proceed
 
-            % Grab the droplet size bins
-            % These are the boundaries that define each bin size
-            % Bins are defined as diameters. Divide by 2 to get the radius
-            drop_radius_bin_edges_2DC = C1DC_RPC_info.Attributes(12).Value./2;                        % microns
+            if strcmp(C1DC_RPC_info.Attributes(6).Value, 'Good')==true
 
-            % The data tells us which bins to take
-            first_bin_2DC = double(C1DC_RPC_info.Attributes(10).Value);
-            last_bin_2DC = double(C1DC_RPC_info.Attributes(11).Value);
+                % If the data quality is good, let's read in the data
+                % Read in the C1DC_RPC data
 
-            drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
-            drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
+                % set up a flag because we will have to calcualte things
+                % differently
+                flag_2DC_data_is_conforming = false;
 
-            % ****** SET THE NUMBER CONCENTRATION TO ZERO FOR ALL BINS ******
-            num_concentration_2DC = zeros((last_bin_2DC - first_bin_2DC +1),1, length(time));
 
+                %raw_counts_2DC = ncread(filename, 'A1DC_RPC');        % counts/bin  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration!
+                num_concentration_2DC = ncread(filename, 'C1DC_RPC');        % #/L  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration!
+
+
+                % Grab the droplet size bins
+                % These are the boundaries that define each bin size
+                % Bins are defined as diameters. Divide by 2 to get the radius
+                drop_radius_bin_edges_2DC = C1DC_RPC_info.Attributes(12).Value./2;                        % microns
+
+                % The data tells us which bins to take
+                first_bin_2DC = double(C1DC_RPC_info.Attributes(10).Value);
+                last_bin_2DC = double(C1DC_RPC_info.Attributes(11).Value);
+
+                drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
+                drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
+
+
+                % --- define the 2DC droplet probe data ----
+                num_concentration_2DC = num_concentration_2DC(first_bin_2DC:last_bin_2DC,1,:);
+
+                % ---- check to ensure the 2DC data is nan free ----
+                if any(isnan(num_concentration_2DC), 'all')==true
+
+                    % then we have no choice but to set the 2DC data to be
+                    % a bunch of zeros
+                    num_concentration_2DC = zeros(size(num_concentration_2DC));
+
+
+                end
+
+
+                % --- Let's also read the LWC data and the mean diameter data
+                lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPC'), 1, []);             % g/m^3 - 2DC liquid water content
+                mean_radius_2DC = reshape(ncread(filename, 'DBAR1DC_RPC'), 1, [])./2;   % microns - 2DC mean particle radius
+
+                % we should alsos read in the total droplet concentration data
+                total_Nc_2DC = ncread(filename, 'CONC1DC_RPC');     % #/L
+                total_Nc_2DC = reshape(total_Nc_2DC./ 1000, 1, []);                 % # of droplets/cm^3
+
+
+            end
+
+
+        end
+
+
+    end
+
+else
+
+    % if this is true, then we have good 2DC data to work with. Tell the code
+    % the 2DC data is conforming.
+
+    % set up a flag because we will have to calcualte things
+    % differently
+    flag_2DC_data_is_conforming = true;
+
+
+end
+
+
+
+% Let's check one more time. There are two 2DC probes that we could use. If
+% the above probe did not exist in the file, or if the data qaulity was
+% bad, we can try one more...
+
+if exist("num_concentration_2DC", 'var')==false
+
+
+    for nn = 1:length(info.Variables)
+
+
+        if strcmp('C1DC_RPI', info.Variables(nn).Name)==true
+
+
+            % read in the 2DC variable info
+            C1DC_RPI_info = ncinfo(filename, 'C1DC_RPI');
+            % First check to make use the data quality is listed as 'Good'.
+            % If it is, then proceed
+
+            if strcmp(C1DC_RPI_info.Attributes(6).Value, 'Good')==true
+
+                % If the data quality is good, let's read in the data
+                % Read in the C1DC_RPC data
+
+                % set up a flag because we will have to calcualte things
+                % differently
+                flag_2DC_data_is_conforming = false;
+
+
+                %raw_counts_2DC = ncread(filename, 'A1DC_RPI');        % counts/bin  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration!
+                num_concentration_2DC = ncread(filename, 'C1DC_RPI');        % #/L  - where I think L stands for liters. 1 liter = 1000 cubic cm - again we only measure the number concentration!
+
+
+                % Grab the droplet size bins
+                % These are the boundaries that define each bin size
+                % Bins are defined as diameters. Divide by 2 to get the radius
+                drop_radius_bin_edges_2DC = C1DC_RPI_info.Attributes(12).Value./2;                        % microns
+
+                % The data tells us which bins to take
+                first_bin_2DC = double(C1DC_RPI_info.Attributes(10).Value);
+                last_bin_2DC = double(C1DC_RPI_info.Attributes(11).Value);
+
+                drop_radius_bin_edges_2DC = drop_radius_bin_edges_2DC(first_bin_2DC:last_bin_2DC+1);                          % microns
+                drop_radius_bin_center_2DC = drop_radius_bin_edges_2DC(1:end-1) + diff(drop_radius_bin_edges_2DC)/2;          % microns
+
+
+                % --- define the 2DC droplet probe data ----
+                num_concentration_2DC = num_concentration_2DC(first_bin_2DC:last_bin_2DC,1,:);
+
+
+                % ---- check to ensure the 2DC data is nan free ----
+                if any(isnan(num_concentration_2DC), 'all')==true
+
+                    % then we have no choice but to set the 2DC data to be
+                    % a bunch of zeros
+                    num_concentration_2DC = zeros(size(num_concentration_2DC));
+
+
+                end
+
+
+                % ----------------- Read the LWC data --------------
+                lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPI'), 1, []);              % g/m^3 - 2DC liquid water content
+                
+                % -------- We cannot compute the effective radius --------
+                % Wihtout number concentration data, we cannot compute the
+                % 2DC effective radius. And I haven't found it in the list
+                % of variables. But the do compute a 'mean' radius, which
+                % appears to be very close to the first moment of the
+                % droplet distribution: int(r*n(r))dr / int(n(r))dr
+                mean_radius_2DC = reshape(ncread(filename, 'DBAR1DC_RPI'), 1, [])./2;      % microns - 2DC mean particle radius
+
+                % we should alsos read in the total droplet concentration data
+                total_Nc_2DC = ncread(filename, 'CONC1DC_RPI');     % #/L
+                total_Nc_2DC = reshape(total_Nc_2DC./ 1000, 1, []);           % # of droplets/cm^3
+
+            end
 
 
         end
@@ -160,6 +320,18 @@ if exist("num_concentration_2DC", 'var')==false
 
 
 end
+
+
+% If we STILL don't have any 2DC data, throw an error
+
+if exist("num_concentration_2DC", 'var')==false
+
+    error([newline, 'There is not 2DC data available in this dataset.', newline])
+
+
+end
+
+
 
 
 % -------------------------------------------------------------------------
@@ -191,7 +363,7 @@ altitude = reshape(altitude, 1, length(altitude));
 % ------- Grab the ambient air temperature and water vapor pressure ------
 % -------------------------------------------------------------------------
 water_vapor_pressure = ncread(filename, 'EDPUV');                                    % hPa - ambient water vapor pressure
-ambient_air_temp = ncread(filename, 'ATX');                                    % C - ambient air tempertaure 
+ambient_air_temp = ncread(filename, 'ATX');                                    % C - ambient air tempertaure
 
 
 
@@ -255,39 +427,252 @@ droplet_matrix_center = repmat((drop_radius_bin_center)', 1, length(time))./1e4;
 % Lets compute the effective radius, which is the 3rd moment to the 2nd
 % moment
 
-% Compute the ratio of the third moment to the second moment and convert
-% back to microns
-%re = 1e4 * trapz(drop_bins_cm, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins_cm, droplet_matrix.^2 .* nr, 1);
+if flag_2DC_data_is_conforming==true
 
-%re = trapz(drop_bins, droplet_matrix.^3 .* Nc, 1)./trapz(drop_bins, droplet_matrix.^2 .* Nc, 1);
+    % --- IF TRUE, WE HAVE REAL 2DC DATA, NOT THE 260X EMULATION DATA ---
 
-re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);                 % microns
+    % Compute the ratio of the third moment to the second moment and convert
+    % back to microns
+    %re = 1e4 * trapz(drop_bins_cm, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins_cm, droplet_matrix.^2 .* nr, 1);
 
-%re2 = sum(droplet_matrix_firstEdge.^3 .* Nc, 1)./sum(droplet_matrix_firstEdge.^2 .* Nc,1) * 1e4;             % microns
+    %re = trapz(drop_bins, droplet_matrix.^3 .* Nc, 1)./trapz(drop_bins, droplet_matrix.^2 .* Nc, 1);
 
-%re3 = trapz(drop_radius_bin_center2', droplet_matrix_center2.^3 .* dN_dr,1)./ trapz(drop_radius_bin_center2', droplet_matrix_center2.^2 .* dN_dr,1);              % microns
+    %re2 = sum(droplet_matrix_firstEdge.^3 .* Nc, 1)./sum(droplet_matrix_firstEdge.^2 .* Nc,1) * 1e4;             % microns
 
-%re4 = sum(Nc./4 .* diff(droplet_matrix_edges.^4,1,1), 1)./sum(Nc./3 .*diff(droplet_matrix_edges.^3,1,1),1) *1e4;                                               % microns
+    %re3 = trapz(drop_radius_bin_center2', droplet_matrix_center2.^3 .* dN_dr,1)./ trapz(drop_radius_bin_center2', droplet_matrix_center2.^2 .* dN_dr,1);              % microns
+
+    %re4 = sum(Nc./4 .* diff(droplet_matrix_edges.^4,1,1), 1)./sum(Nc./3 .*diff(droplet_matrix_edges.^3,1,1),1) *1e4;                                               % microns
+
+    re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);                 % microns
+
+    
+    % Now compute the effective radius for just the CDP instrument
+    index_r_cdp = (drop_radius_bin_center<=drop_radius_bin_center_CDP(end))';       % preform this in microns
+
+    % compute the effective radius using only CDP data
+%     re_CDP = double(sum(droplet_matrix_center(index_r_cdp,:).^3 .* Nc(index_r_cdp, :), 1)./...
+%         sum(droplet_matrix_center(index_r_cdp, :).^2 .* Nc(index_r_cdp, :),1) * 1e4);                 % microns
+    if strcmp(filename(107:end-35), 'SPS_1')==true
+            % If we wish to read in 1Hz data, take the median at each time
+            % step. 
+            re_CDP = ncread(filename, 'REFFD_RWO');         % microns
+            
+            % Check to make sure we only have 1Hz data. Sometimes we dont!
+            if size(re_CDP,1)*size(re_CDP,2) == size(time,1)*size(time,2)
+                re_CDP = reshape(re_CDP, 1, []);
+                
+            elseif size(re_CDP,1)*size(re_CDP,2) > size(time,1)*size(time,2)
+
+                % find which dimension has the 10 Hz data
+                if size(re_CDP,1)==10
+                    re_CDP = median(re_CDP, 1);
+
+                elseif size(re_CDP,2)==10
+                    re_CDP = median(re_CDP, 2);
+                    re_CDP = reshape(re_CDP, 1, []);
+                end
+
+            else
+
+                error([newline, 'I dont know what to do with the re_CDP data.', newline])
+
+            end
 
 
-% Lets compute the total number concetration at each time step by
-% integrating over r
-%total_Nc = trapz(drop_bins, Nc,1);       % cm^(-3)
-total_Nc = sum(Nc,1);                     % cm^(-3)
+        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+            % If we wish to have 10 Hz data (of which the files are labeled
+            % SPS 25, then we simply read in all data
+            re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
+    end
 
-% ------------------------------------------------------------------
-% --------------- Compute liquid water content ---------------------
-% ------------------------------------------------------------------
+    % compute the effective radius using only 2DC data
+    re_2DC = double(sum(droplet_matrix_center(~index_r_cdp, :).^3 .* Nc(~index_r_cdp, :), 1)./...
+        sum(droplet_matrix_center(~index_r_cdp, :).^2 .* Nc(~index_r_cdp, :),1) * 1e4);                 % microns
 
-% Lets compute the liquid water content and liquid water path
-rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
 
-% we have to convert re to cm in order to have the finals units be in grams
-% per meter cubed
 
-lwc = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
 
-%lwc2 = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_firstEdge.^3,1);              % grams of liquid water/meter cubed of air
+
+
+    % ---------- Compute the total Number Concentration -----------
+
+    % Lets compute the total number concetration at each time step by
+    % integrating over r
+    %total_Nc = trapz(drop_bins, Nc,1);       % cm^(-3)
+    total_Nc = double(sum(Nc,1));                     % cm^(-3)
+
+    % Now compute the total number concentration for the CDP instrument
+    total_Nc_CDP = double(sum(Nc(index_r_cdp,:),1));                     % cm^(-3)
+
+    % Now compute the total number concentration for the 2DC instrument
+    total_Nc_2DC = double(sum(Nc(~index_r_cdp,:),1));                     % cm^(-3)
+
+
+
+    % ------------------------------------------------------------------
+    % --------------- Compute liquid water content ---------------------
+    % ------------------------------------------------------------------
+
+    % Lets compute the total liquid water content at each time 
+
+    % Lets compute the liquid water content and liquid water path
+    rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
+
+    % we have to convert re to cm in order to have the finals units be in grams
+    % per meter cubed
+
+    lwc = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
+
+
+    % compute the liquid water content measured by the CDP Instrument
+    %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
+    if strcmp(filename(107:end-35), 'SPS_1')==true
+            % If we wish to read in 1Hz data, take the median at each time
+            % step. 
+            lwc_CDP = ncread(filename, 'PLWCD_RWO');
+
+            % Check to make sure we only have 1Hz data. Sometimes we dont!
+            if size(lwc_CDP,1)*size(lwc_CDP,2) == size(time,1)*size(time,2)
+                lwc_CDP = reshape(lwc_CDP, 1, []);
+                
+            elseif size(lwc_CDP,1)*size(lwc_CDP,2) > size(time,1)*size(time,2)
+
+                % find which dimension has the 10 Hz data
+                if size(lwc_CDP,1)==10
+                    lwc_CDP = median(lwc_CDP, 1);
+
+                elseif size(lwc_CDP,2)==10
+                    lwc_CDP = median(lwc_CDP, 2);
+                    lwc_CDP = reshape(lwc_CDP, 1, []);
+                end
+
+            else
+
+                error([newline, 'I dont know what to do with the lwc_CDP data.', newline])
+
+            end
+
+
+        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+            % If we wish to have 10 Hz data (of which the files are labeled
+            % SPS 25, then we simply read in all data
+            lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
+    end
+
+    % compute the liquid water content measured by the 2DC Instrument
+    %lwc_2DC = 4/3 * pi *  rho_lw * sum(Nc(~index_r_cdp, :) .* droplet_matrix_center(~index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
+    if exist('C1DC_RPC_info', 'var')==true || exist('C1DCA_RPC_info', 'var')==true
+        lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPC'), 1, []);
+
+    elseif exist('C1DC_RPI_info', 'var')==true
+        lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPI'), 1, []);
+    end
+
+
+
+
+
+
+else
+
+    % If the 2DC is non-forming, let's first check to see if it has any
+    % non-zero values.
+
+    if sum(num_concentration_2DC, "all")==0
+
+        % then the 2DC matrix was defined as an array of zeros
+        % we can compute the effective radius for the 2DC instrument and
+        % the CDP instrument seperately, but not together
+
+        % HOWEVER, if the entire 2DC number concentration data set consists
+        % of zeros, the computed effective radius value IS the effective
+        % radius of the CDP instrument
+        %re_CDP = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);      % microns
+
+        % reshape stacks columns. Check to see if this is sps1 or sps25
+        if strcmp(filename(107:end-35), 'SPS_1')==true
+            % If we wish to read in 1Hz data, take the median at each time
+            % step. 
+            re_CDP = ncread(filename, 'REFFD_RWO');
+            re_CDP = median(re_CDP, 1);
+
+        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+            % If we wish to have 10 Hz data (of which the files are labeled
+            % SPS 25, then we simply read in all data
+            re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
+        end
+        
+        % Lets compute the total number concetration at each time step by
+        % first seperating it by instruments
+        % Again, because the number concentration data consists of only
+        % zeros for the 2DC instrument, the sum is only the contribution
+        % from the CDP instrument
+        total_Nc_CDP = double(sum(Nc,1));                     % cm^(-3)
+
+        % then the total Nc is the sum of the two
+        total_Nc = total_Nc_CDP + total_Nc_2DC;             % # / cm^{-3}
+
+
+
+
+        % ------------------------------------------------------------------
+        % --------------- Compute liquid water content ---------------------
+        % ------------------------------------------------------------------
+
+        % Lets compute the total liquid water content at each time step by
+        % first seperating it by instruments
+        % Again, because the number  data consists of only
+        % zeros for the 2DC instrument, the sum is only the contribution
+        % from the CDP instrument
+
+
+        % Lets compute the liquid water content and liquid water path
+        rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
+
+        % we have to convert re to cm in order to have the finals units be in grams
+        % per meter cubed
+
+        %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
+        
+        if strcmp(filename(107:end-35), 'SPS_1')==true
+            % If we wish to read in 1Hz data, take the median at each time
+            % step. 
+            lwc_CDP = ncread(filename, 'PLWCD_RWO');
+            lwc_CDP = median(lwc_CDP, 1);
+
+        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+            % If we wish to have 10 Hz data (of which the files are labeled
+            % SPS 25, then we simply read in all data
+            lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
+        end
+
+        % compute the total liquid water content
+        % Check to see if the data is SPS1 or SPS10
+        if length(lwc_CDP)>length(time)
+            
+            lwc = max(ncread(filename, 'PLWCD_RWO'), [], 1) + lwc_2DC;      % g/m^3
+
+        elseif length(lwc_CDP)==length(time)
+
+            lwc = lwc_CDP + lwc_2DC;              % g/m^3
+
+        end
+
+
+
+
+    else
+
+        % Then there is data? And we do it the onld fashion way but we
+        % still hold onto the 2DC calculated products.
+        error([newline, 'The 2DC data is the weird emulsion kind but there are more than just zeros!', newline])
+
+
+    end
+
+end
+
+
 
 
 
@@ -297,26 +682,59 @@ lwc = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);               
 % We ignore the last bin in the data set. According to the nc info file,
 % the data does not extend through all 31 rows.
 
-vocalsRex.Nc = Nc;
+% store the 2DC flag
+vocalsRex.flag_2DC_data_is_conforming = flag_2DC_data_is_conforming;
+
+vocalsRex.Nc = Nc;                                              % both instruments
 vocalsRex.drop_radius_bin_edges = drop_radius_bin_edges;
 vocalsRex.drop_radius_bin_center = drop_radius_bin_center;
-vocalsRex.total_Nc = total_Nc;
-vocalsRex.lwc = lwc;
-vocalsRex.time = time;
+vocalsRex.total_Nc = total_Nc;                                  % both instruments
+vocalsRex.lwc = double(lwc);                                    % both instruments
+
+% we only have droplet effective radius from both instruments if the 2DC
+% data is non-zero
+if flag_2DC_data_is_conforming==true
+
+    % then we have an effective radius that uses data from both instruments
+    vocalsRex.re = re;                                          % both instruments
+    % and we have an effective radius from just the 2DC data
+    vocalsRex.re_2DC = re_2DC;                                               % from the 2DC instrument only
+
+else
+
+    % we don't have an effective radius for the 2DC data
+    % What we we have is the first moment
+    vocalsRex.mean_r_2DC = mean_radius_2DC;                                               % from the 2DC instrument only
+
+end
+vocalsRex.re_CDP = re_CDP;                                               % from the CDP instrument only
+vocalsRex.lwc_CDP = lwc_CDP;                                              % from the CDP instrument only
+vocalsRex.total_Nc_CDP = total_Nc_CDP;                                               % from the CDP instrument only
+vocalsRex.lwc_2DC = lwc_2DC;                                              % from the 2DC instrument only
+vocalsRex.total_Nc_2DC = total_Nc_2DC;                                               % from the 2DC instrument only
+
+% create a time vector for SPS10, if there is need
+% if length(lwc_CDP)>length(time)
+%     vocalsRex.time = linspace(time(1), time(end), length(lwc_CDP));     % sec
+% end
+vocalsRex.time = time;                                                  % sec
 vocalsRex.startTime = startTime;                                  % We have to assume that this is in UTC time as well
 vocalsRex.time_utc = double((startTime(1) + startTime(2)/60) + vocalsRex.time./3600); % UTC time
 vocalsRex.latitude = lat;
 vocalsRex.longitude = long;
 vocalsRex.altitude = altitude;
-vocalsRex.re = re;
-vocalsRex.horz_wind_speed = horz_wind_speed;
-vocalsRex.horz_wind_direction = horz_wind_direction;
-vocalsRex.ambient_air_temp = ambient_air_temp;
-vocalsRex.water_vapor_presure = water_vapor_pressure;
-vocalsRex.SWT = shortwave_top;
-vocalsRex.SWB = shortwave_bot;
-vocalsRex.LWT = longwave_top;
-vocalsRex.LWB = longwave_bot;
+
+% ------------ STUFF I'M CURERENTLY NOT USING -------------
+% All this stuff will be useful someday! But right now, I'm not using it.
+
+% vocalsRex.horz_wind_speed = horz_wind_speed;
+% vocalsRex.horz_wind_direction = horz_wind_direction;
+% vocalsRex.ambient_air_temp = ambient_air_temp;
+% vocalsRex.water_vapor_presure = water_vapor_pressure;
+% vocalsRex.SWT = shortwave_top;
+% vocalsRex.SWB = shortwave_bot;
+% vocalsRex.LWT = longwave_top;
+% vocalsRex.LWB = longwave_bot;
 
 
 

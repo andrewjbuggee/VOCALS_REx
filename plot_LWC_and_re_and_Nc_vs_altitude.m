@@ -1,5 +1,10 @@
 %% Plot the Liquid Water Content and the Effective Radius versus Altitude
 
+% only plot the vertical profiles corresponding to the input: indices
+
+% noramlize altitude is a true/false input. If true, the y-axis will be
+% normalized so that all profiles have a vertical depth between 0 and 1
+
 
 % By Andrew John Buggee
 %%
@@ -29,15 +34,23 @@ for nn = 1:N_cuvres
 
     if normalize_altitude==true
 
-        norm_alt = (vert_profiles.altitude{indices(nn)} - vert_profiles.altitude{indices(nn)}(1))./...
-            (vert_profiles.altitude{indices(nn)}(end) - vert_profiles.altitude{indices(nn)}(1));
+        norm_alt = (vert_profiles.altitude{indices(nn)} - min(vert_profiles.altitude{indices(nn)}))./...
+            (max(vert_profiles.altitude{indices(nn)}) - min(vert_profiles.altitude{indices(nn)}));
 
         % First plot the LWC
         ax1 = subplot(1,3,1); plot(vert_profiles.lwc{indices(nn)}, norm_alt);
         hold on
 
         % next plot the effective radius
-        ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_alt);
+        % if the 2DC data is compliant, plot the effective radius computed
+        % using both instruments
+        if vert_profiles.flag_2DC_data_is_conforming==true
+            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, norm_alt);
+        else
+            % if the 2DC data is non-conforming, use only the CDP data and
+            % make a note of it
+            ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, norm_alt);
+        end
         hold on
 
         % Lastly, plot the total droplet number concentration
@@ -51,7 +64,15 @@ for nn = 1:N_cuvres
         hold on
 
         % next plot the effective radius
-        ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, vert_profiles.altitude{indices(nn)});
+        % if the 2DC data is compliant, plot the effective radius computed
+        % using both instruments
+        if vert_profiles.flag_2DC_data_is_conforming==true
+            ax2 = subplot(1,3,2); plot(vert_profiles.re{indices(nn)}, vert_profiles.altitude{indices(nn)});
+        else
+            % if the 2DC data is non-conforming, use only the CDP data and
+            % make a note of it
+            ax2 = subplot(1,3,2); plot(vert_profiles.re_CDP{indices(nn)}, vert_profiles.altitude{indices(nn)});
+        end
         hold on
 
         % Lastly, plot the total droplet number concentration
@@ -71,24 +92,43 @@ grid on; grid minor;
 xlabel('LWC ($g/m^3$)', 'Interpreter','latex');
 ylabel('Altitude ($m$)', 'Interpreter','latex');
 
-% in the first subplot, define the indices being plotted
-legend(legend_str, 'Interpreter','latex', 'Location','best')
-
 
 
 subplot(1,3,2)
 grid on; grid minor;
-xlabel('$r_e$ ($\mu m$)', 'Interpreter','latex')
+% if the 2DC data is compliant, plot the effective radius computed
+        % using both instruments
+if vert_profiles.flag_2DC_data_is_conforming==true
+    xlabel('$r_e$ ($\mu m$)', 'Interpreter','latex')
+else
+    % if the 2DC data is non-conforming, use only the CDP data and
+    % make a note of it
+    xlabel('$r_e$ ($\mu m$) - (CDP only)', 'Interpreter','latex')
+end
+
 % include a title in the middle plot
-title(['LWC $\geq$ ', num2str(vert_profiles.lwc_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
+if isfield(vert_profiles, 'LWC_threshold')==true
+    title(['$LWC \geq$ ', num2str(vert_profiles.LWC_threshold),' $g/m^{3}$',...
+        '   $N_c \geq$ ', num2str(vert_profiles.Nc_threshold), ' $cm^{-3}$'], 'interpreter', 'latex')
+
+elseif isfield(vert_profiles.inputs, 'LWC_threshold')==true
+    title(['$LWC \geq$ ', num2str(vert_profiles.inputs.LWC_threshold),' $g/m^{3}$',...
+        '   $N_c \geq$ ', num2str(vert_profiles.inputs.Nc_threshold), ' $cm^{-3}$'], 'interpreter', 'latex')
+
+end
+
+
 
 
 subplot(1,3,3)
 grid on; grid minor;
 xlabel('$N_c$ ($cm^{-3}$)', 'Interpreter','latex')
 
+% in the third subplot, define the indices being plotted
+legend(legend_str, 'Interpreter','latex', 'Location','best')
+
 % set plot size
-set(gcf, 'Position', [0 0 1000 550])
+set(gcf, 'Position', [0 0 1200 625])
 
 % link the yaxes so that they all have the same bounds
 linkaxes([ax1 ax2 ax3],'y')
