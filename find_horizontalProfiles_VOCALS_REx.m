@@ -26,12 +26,21 @@
 %       above this threshold will satisfy the profile search.
 
 
+%       (4) max_vertical_displacement - (meters) the maximum vertical
+%       displacement allowed throughout a horizontal profile. If set to x,
+%       than profiles where the plane ascended or descended by more than x
+%       will be thrown out.
 
-function [horz_profs] = find_horizontalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, Nc_threshold)
+
+
+function [horz_profs] = find_horizontalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, Nc_threshold, max_vertical_displacement)
 
 % Define the length of consecutive values found above the liquid water
 % content threshold that is required to deem it a vertical profile.
 consecutive_length_threshold = 50;
+
+
+
 
 % Store whether or not the 2DC was conforming
 horz_profs.flag_2DC_data_is_conforming = vocalsRex.flag_2DC_data_is_conforming;
@@ -134,10 +143,10 @@ for ii = 1:length(index_consec)-1
 
 
     % ----------- These variables are not being used -----------------
-    %     vert_profs.SWT{ii} = vocalsRex.SWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    %     vert_profs.SWB{ii} = vocalsRex.SWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    %     vert_profs.LWT{ii} = vocalsRex.LWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
-    %     vert_profs.LWB{ii} = vocalsRex.LWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     horz_profs.SWT{ii} = vocalsRex.SWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     horz_profs.SWB{ii} = vocalsRex.SWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     horz_profs.LWT{ii} = vocalsRex.LWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
+    %     horz_profs.LWB{ii} = vocalsRex.LWB(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
 
 end
 
@@ -157,7 +166,7 @@ index2delete = [];
 
 for ii = 1:length(horz_profs.Nc)
 
-    %[vert_profs.Nc{ii}(1), vert_profs.Nc{ii}(end), any(vert_profs.Nc{ii}>10^7), all(vert_profs.Nc{ii}<1)]
+    %[horz_profs.Nc{ii}(1), horz_profs.Nc{ii}(end), any(horz_profs.Nc{ii}>10^7), all(horz_profs.Nc{ii}<1)]
 
     % Check to see if any of these statements are met. If so, delete the
     % profile
@@ -201,10 +210,10 @@ horz_profs.Nc_CDP(index2delete) = [];
 horz_profs.Nc_2DC(index2delete) = [];
 
 % ----------- These variables are not being used -----------------
-% vert_profs.SWT(index2delete) = [];
-% vert_profs.SWB(index2delete) = [];
-% vert_profs.LWT(index2delete) = [];
-% vert_profs.LWB(index2delete) = [];
+% horz_profs.SWT(index2delete) = [];
+% horz_profs.SWB(index2delete) = [];
+% horz_profs.LWT(index2delete) = [];
+% horz_profs.LWB(index2delete) = [];
 
 
 
@@ -214,7 +223,7 @@ horz_profs.Nc_2DC(index2delete) = [];
 % all 0 values at the end of the vector ONLY when all remaining values are
 % 0
 
-% for ii = 1:length(vert_profs.Nc)
+% for ii = 1:length(horz_profs.Nc)
 %
 %
 %
@@ -243,7 +252,7 @@ max_lwc = zeros(1, length(horz_profs.lwc));
 
 % create a zero vector that defines which profiles don't meet requirements
 % and need to be delted
-%profile_idx_2delete = zeros(1, length(vert_profs.lwc));
+%profile_idx_2delete = zeros(1, length(horz_profs.lwc));
 
 
 for ii = 1:length(horz_profs.lwc)
@@ -307,7 +316,7 @@ for ii = 1:length(horz_profs.lwc)
 
         % find the max LWC and the index between the first and last index.
         % The max value wil be used to remove profiles that don't have a max
-        % LWC above the minimum threshold. 
+        % LWC above the minimum threshold.
         [max_lwc(ii), index_max_lwc] = max(horz_profs.lwc{ii}(firstIndex:lastIndex));
 
         [~, index_absolute_max_lwc] = max(horz_profs.lwc{ii});
@@ -317,7 +326,7 @@ for ii = 1:length(horz_profs.lwc)
 
 
 
-    
+
 
 
     % if none of the values within the vertical profile are above the LWC
@@ -350,10 +359,10 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.Nc_2DC{ii} = 0;
 
         % ----------- These variables are not being used -----------------
-        %         vert_profs.SWT{ii} = 0;
-        %         vert_profs.SWB{ii} = 0;
-        %         vert_profs.LWT{ii} = 0;
-        %         vert_profs.LWB{ii} = 0;
+        %         horz_profs.SWT{ii} = 0;
+        %         horz_profs.SWB{ii} = 0;
+        %         horz_profs.LWT{ii} = 0;
+        %         horz_profs.LWB{ii} = 0;
 
 
         % if the longest consecutive vector of measurements above the
@@ -387,10 +396,10 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.Nc_2DC{ii} = 0;
 
         % ----------- These variables are not being used -----------------
-        %         vert_profs.SWT{ii} = 0;
-        %         vert_profs.SWB{ii} = 0;
-        %         vert_profs.LWT{ii} = 0;
-        %         vert_profs.LWB{ii} = 0;
+        %         horz_profs.SWT{ii} = 0;
+        %         horz_profs.SWB{ii} = 0;
+        %         horz_profs.LWT{ii} = 0;
+        %         horz_profs.LWB{ii} = 0;
 
 
 
@@ -429,10 +438,10 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.Nc_2DC{ii} = horz_profs.Nc_2DC{ii}(firstIndex:lastIndex);
 
         % ----------- These variables are not being used -----------------
-        %         vert_profs.SWT{ii} = vert_profs.SWT{ii}(firstIndex:lastIndex);
-        %         vert_profs.SWB{ii} = vert_profs.SWB{ii}(firstIndex:lastIndex);
-        %         vert_profs.LWT{ii} = vert_profs.LWT{ii}(firstIndex:lastIndex);
-        %         vert_profs.LWB{ii} = vert_profs.LWB{ii}(firstIndex:lastIndex);
+        %         horz_profs.SWT{ii} = horz_profs.SWT{ii}(firstIndex:lastIndex);
+        %         horz_profs.SWB{ii} = horz_profs.SWB{ii}(firstIndex:lastIndex);
+        %         horz_profs.LWT{ii} = horz_profs.LWT{ii}(firstIndex:lastIndex);
+        %         horz_profs.LWB{ii} = horz_profs.LWB{ii}(firstIndex:lastIndex);
 
 
     end
@@ -446,15 +455,15 @@ for ii = 1:length(horz_profs.lwc)
         profile_idx_2delete(ii) = true;
 
 
-    % Also check to see if the total profile found doesn't travelly
-    % vertically by more than 20 meters
+        % Also check to see if the total profile found doesn't travel
+        % vertically by more than the defined max_vertical_displacement input
 
-    elseif (max(horz_profs.altitude{ii}) - min(horz_profs.altitude{ii}))>20
+    elseif (max(horz_profs.altitude{ii}) - min(horz_profs.altitude{ii}))>max_vertical_displacement
 
         profile_idx_2delete(ii) = true;
 
     else
-   
+
 
         profile_idx_2delete(ii) = false;
 
@@ -502,10 +511,10 @@ if sum(profile_idx_2delete)>0
     horz_profs.Nc_2DC(profile_idx_2delete) = [];
 
     % ----------- These variables are not being used -----------------
-    %     vert_profs.SWT(profile_idx_2delete) = [];
-    %     vert_profs.SWB(profile_idx_2delete) = [];
-    %     vert_profs.LWT(profile_idx_2delete) = [];
-    %     vert_profs.LWB(profile_idx_2delete) = [];
+    %     horz_profs.SWT(profile_idx_2delete) = [];
+    %     horz_profs.SWB(profile_idx_2delete) = [];
+    %     horz_profs.LWT(profile_idx_2delete) = [];
+    %     horz_profs.LWB(profile_idx_2delete) = [];
 
 end
 
@@ -519,6 +528,9 @@ horz_profs.LWC_threshold = LWC_threshold;            % g/m^3
 % Store the Nc threshold used
 horz_profs.Nc_threshold = Nc_threshold;            % g/m^3
 
+% Save the maximum vertical displacement allowed
+horz_profs.max_vert_displacement = max_vertical_displacement;       % meters
+
 
 
 
@@ -527,7 +539,7 @@ horz_profs.Nc_threshold = Nc_threshold;            % g/m^3
 % ----------------------------------------------------------------------
 
 % Create a World Geodetic System of 1984 (WGS84) reference ellipsoid with a length unit of meters.
-wgs84 = wgs84Ellipsoid("m");
+wgs84 = wgs84Ellipsoid("m");        % units of meters
 
 
 for nn = 1:length(horz_profs.Nc)
@@ -538,11 +550,11 @@ for nn = 1:length(horz_profs.Nc)
 
     for xx = 2:length(horz_profs.latitude{nn})
 
-    % Find the linear distance between the start and end of the horizontal profile. 
-    % When you specify a reference ellipsoid as input to the distance function, 
-    % the function returns linear distances in the units of the semimajor axis of the ellipsoid.
-    horz_distance_travelled(xx) = distance(horz_profs.latitude{nn}(1), horz_profs.longitude{nn}(1),...
-                                            horz_profs.latitude{nn}(xx), horz_profs.latitude{nn}(xx),wgs84);
+        % Find the linear distance between the start and end of the horizontal profile.
+        % When you specify a reference ellipsoid as input to the distance function,
+        % the function returns linear distances in the units of the semimajor axis of the ellipsoid.
+        horz_distance_travelled(xx) = distance(horz_profs.latitude{nn}(1), horz_profs.longitude{nn}(1),...
+            horz_profs.latitude{nn}(xx), horz_profs.longitude{nn}(xx),wgs84);
 
     end
 
@@ -550,6 +562,80 @@ for nn = 1:length(horz_profs.Nc)
 
 
 end
+
+
+
+
+
+% ----------------------------------------------------------------------
+% ------------------ Compute Liquid Water Path -------------------------
+% ----------------------------------------------------------------------
+
+
+
+% we want to compute the total LWP, and the LWP for the two instruments
+% used to measure droplets.
+% The CDP probe measures radii between 0.875 and 25.055 microns.
+% The 2DC probe measures radii between 31.25 and 793 microns
+
+if iscell(horz_profs.horz_dist)==true
+
+    num_profiles = length(horz_profs.horz_dist);
+
+
+    % step through each profile
+    for nn = 1:num_profiles
+
+
+        % LWP is calculated by integrating from cloud bottom to
+        % cloud top. We are going to calculated the total LWP along a
+        % horizontal profile to determine whether or not precipitation was
+        % present
+
+        % Compute the total LWP
+        horz_profs.lwp{nn} = trapz(horz_profs.horz_dist{nn}, horz_profs.lwc{nn});            % g/m^2
+
+        % ------ Compute the CDP LWP ---------
+        horz_profs.lwp_CDP{nn} = trapz(horz_profs.horz_dist{nn}, horz_profs.lwc_CDP{nn});
+
+
+        % ------ Compute the 2DC LWP ---------
+        horz_profs.lwp_2DC{nn} = trapz(horz_profs.horz_dist{nn}, horz_profs.lwc_2DC{nn});
+
+
+
+    end
+
+
+
+
+else
+
+    % if vocalsRex is not a cell, then there is only one profile
+
+
+
+    % Compute the total LWP
+    horz_profs.lwp = trapz(horz_profs.horz_dist, horz_profs.lwc);            % g/m^2
+
+    % ------ Compute the CDP LWP ---------
+    % compute the CDP LWP by integration over the cloud depth
+    horz_profs.lwp_CDP = trapz(horz_profs.horz_dist, horz_profs.lwc_CDP);
+
+
+    % ------ Compute the 2DC LWP ---------
+    % compute the 2DC LWP by integration over the cloud depth
+    horz_profs.lwp_2DC = trapz(horz_profs.horz_dist, horz_profs.lwc_2DC);
+
+
+
+
+end
+
+
+
+
+
 
 
 

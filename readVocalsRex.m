@@ -452,7 +452,7 @@ if flag_2DC_data_is_conforming==true
     % compute the effective radius using only CDP data
 %     re_CDP = double(sum(droplet_matrix_center(index_r_cdp,:).^3 .* Nc(index_r_cdp, :), 1)./...
 %         sum(droplet_matrix_center(index_r_cdp, :).^2 .* Nc(index_r_cdp, :),1) * 1e4);                 % microns
-    if strcmp(filename(107:end-35), 'SPS_1')==true
+    if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
             re_CDP = ncread(filename, 'REFFD_RWO');         % microns
@@ -479,7 +479,7 @@ if flag_2DC_data_is_conforming==true
             end
 
 
-        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+        elseif strcmp(filename(40:end-35), 'SPS_25')==true
             % If we wish to have 10 Hz data (of which the files are labeled
             % SPS 25, then we simply read in all data
             re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
@@ -526,7 +526,7 @@ if flag_2DC_data_is_conforming==true
 
     % compute the liquid water content measured by the CDP Instrument
     %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
-    if strcmp(filename(107:end-35), 'SPS_1')==true
+    if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
             lwc_CDP = ncread(filename, 'PLWCD_RWO');
@@ -553,7 +553,7 @@ if flag_2DC_data_is_conforming==true
             end
 
 
-        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
             % If we wish to have 10 Hz data (of which the files are labeled
             % SPS 25, then we simply read in all data
             lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
@@ -590,13 +590,13 @@ else
         %re_CDP = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);      % microns
 
         % reshape stacks columns. Check to see if this is sps1 or sps25
-        if strcmp(filename(107:end-35), 'SPS_1')==true
+        if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
             re_CDP = ncread(filename, 'REFFD_RWO');
             re_CDP = median(re_CDP, 1);
 
-        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
             % If we wish to have 10 Hz data (of which the files are labeled
             % SPS 25, then we simply read in all data
             re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
@@ -634,13 +634,13 @@ else
 
         %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
         
-        if strcmp(filename(107:end-35), 'SPS_1')==true
+        if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
             lwc_CDP = ncread(filename, 'PLWCD_RWO');
             lwc_CDP = median(lwc_CDP, 1);
 
-        elseif strcmp(filename(107:end-35), 'SPS_25')==true
+        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
             % If we wish to have 10 Hz data (of which the files are labeled
             % SPS 25, then we simply read in all data
             lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
