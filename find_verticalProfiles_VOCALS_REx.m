@@ -169,7 +169,7 @@ for ii = 1:length(vert_profs.Nc)
 
     % Check to see if any of these statements are met. If so, delete the
     % profile
-    if vert_profs.Nc{ii}(1)>1 || vert_profs.Nc{ii}(end)>1 || any(vert_profs.Nc{ii}>10^7) || all(vert_profs.Nc{ii}<1)
+    if any(vert_profs.Nc{ii}>10^7) || all(vert_profs.Nc{ii}<Nc_threshold)
 
         % if this is true, mark the index for deletion
         index2delete = [index2delete, ii];
@@ -533,20 +533,11 @@ for ii = 1:length(vert_profs.lwc)
         profile_idx_2delete(ii) = true;
 
 
-    else
-
-        profile_idx_2delete(ii) = false;
-
-    end
-
-
     % Also check to see if the total profile found is less than 50 meters
     % deep. If it is, flag it for deletion
-
-    if abs(vert_profs.altitude{ii}(1) - vert_profs.altitude{ii}(end))<50
+    elseif abs(vert_profs.altitude{ii}(1) - vert_profs.altitude{ii}(end))<50
 
         profile_idx_2delete(ii) = true;
-
 
     else
 

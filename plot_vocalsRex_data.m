@@ -18,13 +18,13 @@ foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Clo
 % filename = 'RF05.20081025.062900_152500.PNI.nc';
 
 % ----- November 9 data -----
-%filename = 'RF11.20081109.125700_213600.PNI.nc';
+filename = 'RF11.20081109.125700_213600.PNI.nc';
 
 % ------ November 11 data -----
 %filename = 'RF12.20081111.125000_214500.PNI.nc';
 
 % ----- November 13 data -----
-filename = 'RF13.20081113.125700_215700.PNI.nc';
+%filename = 'RF13.20081113.125700_215700.PNI.nc';
 
 % ----- November 15 data -----
 %filename = 'RF14.20081115.125800_220400.PNI.nc';

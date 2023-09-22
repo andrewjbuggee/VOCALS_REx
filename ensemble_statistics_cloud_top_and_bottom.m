@@ -60,7 +60,7 @@ end
 % --------------------------------------------------------
 
 % define the LWC threshold
-ensemble_profiles.inputs.LWC_threshold = 0.005;       % g/m^3
+ensemble_profiles.inputs.LWC_threshold = 0.03;       % g/m^3
 
 % do you want to cut off the profile at the maximum LWC value?
 ensemble_profiles.inputs.stop_at_max_LWC = false;
