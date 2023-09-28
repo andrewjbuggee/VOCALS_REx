@@ -111,18 +111,24 @@ end
 % include a title in the middle plot
 if isfield(horz_profiles, 'LWC_threshold')==true
     title(['$LWC \geq$ ', num2str(horz_profiles.LWC_threshold),' $g/m^{3}$',...
-        '   $N_c \geq$ ', num2str(horz_profiles.Nc_threshold), ' $cm^{-3}$',...
-        '   Max vert displacement: ', num2str(horz_profiles.max_vert_displacement), ' $m$'], 'interpreter', 'latex')
+        '     $N_c \geq$ ', num2str(horz_profiles.Nc_threshold), ' $cm^{-3}$',...
+        '     Max vert displacement: ', num2str(horz_profiles.max_vert_displacement), ' $m$'], 'interpreter', 'latex')
 
 elseif isfield(horz_profiles.inputs, 'LWC_threshold')==true
     title(['$LWC \geq$ ', num2str(horz_profiles.inputs.LWC_threshold),' $g/m^{3}$',...
-        '   $N_c \geq$ ', num2str(horz_profiles.inputs.Nc_threshold), ' $cm^{-3}$',...
-        '   Max vert displacement: ', num2str(horz_profiles.inputs.max_vert_displacement), ' $m$'], 'interpreter', 'latex')
+        '     $N_c \geq$ ', num2str(horz_profiles.inputs.Nc_threshold), ' $cm^{-3}$',...
+        '     Max vert displacement: ', num2str(horz_profiles.inputs.max_vert_displacement), ' $m$'], 'interpreter', 'latex')
 
 end
 
 % Include an x axis label on the middle plot
-xlabel('Horizontal Distance Travelled ($km$)', 'Interpreter','latex');
+if normalize_distance==true
+
+    xlabel('Normalized Horizontal Distance Travelled', 'Interpreter','latex');
+else
+
+    xlabel('Horizontal Distance Travelled ($km$)', 'Interpreter','latex');
+end
 
 
 
