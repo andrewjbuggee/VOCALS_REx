@@ -529,7 +529,7 @@ if flag_2DC_data_is_conforming==true
     if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
-            lwc_CDP = ncread(filename, 'PLWCD_RWO');
+            lwc_CDP = ncread(filename, 'PLWCD_RWO');                % g/m^3
 
             % Check to make sure we only have 1Hz data. Sometimes we dont!
             if size(lwc_CDP,1)*size(lwc_CDP,2) == size(time,1)*size(time,2)
@@ -637,7 +637,7 @@ else
         if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
-            lwc_CDP = ncread(filename, 'PLWCD_RWO');
+            lwc_CDP = ncread(filename, 'PLWCD_RWO');            % g/m^3
             lwc_CDP = median(lwc_CDP, 1);
 
         elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
@@ -689,7 +689,7 @@ vocalsRex.Nc = Nc;                                              % both instrumen
 vocalsRex.drop_radius_bin_edges = drop_radius_bin_edges;
 vocalsRex.drop_radius_bin_center = drop_radius_bin_center;
 vocalsRex.total_Nc = total_Nc;                                  % both instruments
-vocalsRex.lwc = double(lwc);                                    % both instruments
+vocalsRex.lwc = double(lwc);                                    % g/m^3 both instruments
 
 % we only have droplet effective radius from both instruments if the 2DC
 % data is non-zero
