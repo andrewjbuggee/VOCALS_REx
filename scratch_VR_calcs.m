@@ -486,3 +486,79 @@ histogram('BinEdges',vr.drop_radius_bin_edges ,'BinCounts',vr.Nc(:,pz_secSinceSt
 xlabel('Droplet Radius (\mum)'); ylabel('N_c (cm^{-3})')
 grid on; grid minor; hold on;
 xlim([0,20])
+
+
+
+
+%% Project the location of VOCALS-REx using a heading and a linear distance
+
+% % Define the folder where all VOCALS-REx data is stored
+% foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/', ...
+%     'VOCALS_REx/vocals_rex_data/SPS_1/'];
+% 
+
+% % ----- November 9 data -----
+% filename = 'RF11.20081109.125700_213600.PNI.nc';
+% 
+% % Load data
+% vocalsRex = readVocalsRex([foldername,filename]);
+% 
+% % find vertical profiles
+% LWC_threshold = 0.03;       % g/m^3
+% stop_at_max_LWC = false;
+% Nc_threshold = 10;           % cm^{-3}
+% vert_profs = find_verticalProfiles_VOCALS_REx(vocalsRex, LWC_threshold, stop_at_max_LWC, Nc_threshold);
+
+% distance travelled by the plane. We assume it's an arc length
+d0 = 1000;          % m
+
+% head realtive to due North
+heading = 0;            % degrees
+
+% set up the initial coordinates
+lat0 = 0; 
+long0 = 0;
+
+% Create a World Geodetic System of 1984 (WGS84) reference ellipsoid with a length unit of meters.
+wgs84 = wgs84Ellipsoid("m");
+
+% compute the linear distance between two points on an ellipsoid
+dLat = 0.00001;
+Lat2Add = dLat;
+
+d = distance(lat0, long0, lat0 + Lat2Add, long0,wgs84);
+
+while d<1000
+    
+    Lat2Add = Lat2Add + dLat;
+    d = distance(lat0, long0, lat0 + Lat2Add, long0,wgs84);
+
+end
+
+
+% So, a change in the latitude of 0.009 degrees results in a change of 1
+% linear km
+
+d_Lat_1km = 0.009;      % degrees to change latitude for a 1km linear change
+
+% Assuming the Earth is a sphere...
+% We can calculate the change in longitutde for a given latitude that
+% results in a 1km linear change
+con = physical_constants();
+
+d_Long_1km = d0/(con.R_earth * cosd(lat0));         % degrees
+
+
+
+% So I start with some lat and long position. To move along a sphere, I
+% need to invoke spherical trigonometry. But if I incorrectly use circular
+% trig, I can solve this right now. 
+% 
+% My justification for ignoring spherical trigonometry is that the
+% circumference of the Earth is much much larger than the arc lengths
+% travelled by a cloud over 20 minutes. The circumference of the Earth is
+% 4e7 meters long. The clouds measured by VOCALS-REx travel an average of
+% 7.5 m/s. Over 30 minutes, this would travel a distance of 13.5 km or 
+% 1.3e4 meters, roughly 1/1000 th of Earth's circumference
+
+

@@ -21,6 +21,7 @@ density = 1e6;          % g/m^3
 % Plot the number of curves within the vert_profiles structure
 
 N_curves = length(indices);
+legend_str = cell(1, N_curves);
 
 figure;
 
@@ -28,7 +29,7 @@ if N_curves<4
 
     for nn = 1:N_curves
 
-
+        legend_str{nn} = ['idx = ', num2str(indices(nn))];
         % Profiles measured while the plane was descending will start with values
         % at the cloud top
 
@@ -39,7 +40,7 @@ if N_curves<4
 
             % all stored tau vectors start from 0. So if the plane is
             % ascending, we need to flip the tau vector
-            tau = flipud(reshape(vert_profiles.tau{nn}, [], 1));
+            tau = flipud(reshape(vert_profiles.tau{indices(nn)}, [], 1));
 
 
 
@@ -48,7 +49,7 @@ if N_curves<4
             % measured at cloud top
 
             % in this case we don't flip the tau vector
-            tau = reshape(vert_profiles.tau{nn}, [], 1);
+            tau = reshape(vert_profiles.tau{indices(nn)}, [], 1);
 
         end
 
@@ -121,6 +122,8 @@ else
     for nn = 1:N_curves
 
         tau = zeros(1, length(vert_profiles.altitude{indices(nn)}));
+
+        legend_str{nn} = ['idx = ', num2str(indices(nn))];
 
         % Profiles measured while the plane was descending will start with values
         % at the cloud top
@@ -235,6 +238,9 @@ elseif isfield(vert_profiles.inputs, 'LWC_threshold')==true
     title(['LWC $\geq$ ', num2str(vert_profiles.inputs.LWC_threshold),' $g/m^{3}$'], 'interpreter', 'latex')
 
 end
+
+% define a legend
+legend(legend_str, 'Interpreter','latex', 'FontSize', 18, 'Location','southeast')
 
 
 subplot(1,3,3)
