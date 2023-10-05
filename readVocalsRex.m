@@ -724,11 +724,13 @@ vocalsRex.latitude = lat;
 vocalsRex.longitude = long;
 vocalsRex.altitude = altitude;
 
+vocalsRex.horz_wind_speed = horz_wind_speed;
+vocalsRex.horz_wind_direction = horz_wind_direction;
+
 % ------------ STUFF I'M CURERENTLY NOT USING -------------
 % All this stuff will be useful someday! But right now, I'm not using it.
 
-% vocalsRex.horz_wind_speed = horz_wind_speed;
-% vocalsRex.horz_wind_direction = horz_wind_direction;
+
 % vocalsRex.ambient_air_temp = ambient_air_temp;
 % vocalsRex.water_vapor_presure = water_vapor_pressure;
 % vocalsRex.SWT = shortwave_top;
