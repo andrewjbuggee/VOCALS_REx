@@ -748,6 +748,68 @@ end
 
 
 
+% ----------------------------------------------------------------------
+% ----------- COMPUTE THE HORIZONTAL DISTANCE TRAVELLED ----------------
+% ----------------------------------------------------------------------
+
+% Also compute the cloud depth and then the slant path travelled in the
+% cloud by the plane us pythagreous' theorem. The compute the zenith angle
+% of the slant path with repsect to the cloud base.
+
+
+% why do we need this? Optical depth is a path dependent quantity. The
+% properties of the medium that make it attenuating must be integrated
+% along the entire line of sight. Cloud optical depth is defind as the
+% vertically integrated optical depth from cloud top to cloud bottom.
+% Assuming a plane-parallel cloud, the equation is: 
+% int( sec(theta) * Qe * pi * r^2(z) * Nc(z)) dz
+% The term sec(theta) accounts for the zenith angle off from a true
+% vertical path (one that travels against the vector of the gravitational
+% force). To estimate what sec(theta) is, we need to compute the horizontal
+% distance travelled during the vertical profile. Cos(theta) is the ratio
+% of the the vertical distance travelled to the hypotenuse. And sec(theta)
+% is 1/cos(theta).
+
+
+% Create a World Geodetic System of 1984 (WGS84) reference ellipsoid with a length unit of meters.
+wgs84 = wgs84Ellipsoid("m");        % units of meters
+
+
+for nn = 1:length(vert_profs.Nc)
+
+    % Step through each point to get the linear distance travelled as a
+    % vector
+    horz_distance_travelled = zeros(1, length(vert_profs.latitude{nn}));
+
+    for xx = 2:length(vert_profs.latitude{nn})
+
+        % Find the linear distance between the start and end of the horizontal profile.
+        % When you specify a reference ellipsoid as input to the distance function,
+        % the function returns linear distances in the units of the semimajor axis of the ellipsoid.
+        horz_distance_travelled(xx) = distance(vert_profs.latitude{nn}(1), vert_profs.longitude{nn}(1),...
+            vert_profs.latitude{nn}(xx), vert_profs.longitude{nn}(xx),wgs84);
+
+    end
+
+    vert_profs.horz_dist{nn} = horz_distance_travelled;
+
+    % Using the horizontal distance travelled, and the vertical depth of
+    % the cloud, use pythareous's theorem to estimate the slant path
+    % travelled within the cloud
+    vert_profs.cloud_depth{nn} = max(vert_profs.altitude{nn}) - min(vert_profs.altitude{nn});
+    vert_profs.slath_path{nn} = sqrt(vert_profs.horz_dist{nn}(end)^2 + vert_profs.cloud_depth{nn}^2);
+
+    % Compute the zenith angle of the slant path with respect to the cloud
+    % base, assuming a plane-parallel cloud and a straight line for the
+    % planes trajectory
+
+    vert_profs.VR_zenith_angle{nn} = atand(vert_profs.horz_dist{nn}(end)/vert_profs.cloud_depth{nn});
+
+
+end
+
+
+
 
 % ------------------------------------------------------------------
 % ------------------ Compute optical depth -------------------------
@@ -758,6 +820,10 @@ end
 
 % optical depth is defined to be 0 at cloud top and increasing towards
 % cloud bottom
+
+% We do NOT include the zenith angle of the plane as it travels through the
+% cloud because we are concerned with the cloud optical depth and not the
+% optical depth along the slant path. 
 
 % if there is more than one profile, the data will be stored in a cell
 % array
@@ -772,6 +838,9 @@ if iscell(vert_profs.altitude)==true
 
         vector_length = length(vert_profs.altitude{nn});
         vert_profs.tau{nn} = zeros(1,vector_length-1);
+
+        % compute sec(theta) by first computing the hypotenuse
+        
 
 
         % Optical thickness is defined by integrating from cloud top to
