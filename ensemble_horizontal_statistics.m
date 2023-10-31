@@ -79,20 +79,20 @@ ensemble_profiles.inputs.LWC_threshold = 0.03;          % g/m^3
 
 % what is the maximum vertical displacement allowed for a single horizontal
 % profile?
-ensemble_profiles.inputs.max_vert_displacement = 10;     % meters
+ensemble_profiles.inputs.max_vert_displacement = 20;     % meters
 
 % define the total number concentration threshold
 ensemble_profiles.inputs.Nc_threshold = 1;       %  #-droplets/cm^3
 
 % if sorting for precipitation, provide a drizzle/precip threshold.
-ensemble_profiles.sort_for_precip_driz = false;
+ensemble_profiles.sort_for_precip_driz = true;
 
 % the logic flag below tells the code to use either profiles with
 % precipitation or those without
 ensemble_profiles.keep_precip_drizzle_profiles = false;             % if false, keep non-precip profiles only
 
 % The threshold is defined as the total 2DC LWP
-ensemble_profiles.precip_driz_threshold = 10;         % g/m^2
+ensemble_profiles.precip_driz_threshold = 25;         % g/m^2
 
 % Load data
 
@@ -319,15 +319,15 @@ if ensemble_profiles.sort_for_precip_driz==true
 
 
 
-        save([foldername,'ensemble_profiles_with_precip_from_',num2str(length(filename)), '_files_LWC-threshold_',...
-            num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
+        save([foldername,'ensemble_horizontal_profiles_with_precip_from_',num2str(length(filename)),...
+            '_files_LWC-threshold_',num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
             num2str(ensemble_profiles.inputs.Nc_threshold), '_',char(datetime("today")),'.mat'],...
             'ensemble_profiles', 'filename')
 
     else
 
-        save([foldername,'ensemble_profiles_without_precip_from_',num2str(length(filename)), '_files_LWC-threshold_',...
-            num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
+        save([foldername,'ensemble_horizontal_profiles_without_precip_from_',num2str(length(filename)),...
+            '_files_LWC-threshold_',num2str(ensemble_profiles.inputs.LWC_threshold), '_Nc-threshold_',...
             num2str(ensemble_profiles.inputs.Nc_threshold), '_',char(datetime("today")),'.mat'],...
             'ensemble_profiles', 'filename')
 

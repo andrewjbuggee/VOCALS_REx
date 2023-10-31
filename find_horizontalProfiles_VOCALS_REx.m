@@ -141,6 +141,9 @@ for ii = 1:length(index_consec)-1
     horz_profs.lwc{ii} = vocalsRex.lwc(index_horizontal(index_consec(ii)+1:(index_consec(ii+1))))';
     horz_profs.lwc_2DC{ii} = vocalsRex.lwc_2DC(index_horizontal(index_consec(ii)+1:(index_consec(ii+1))))';
 
+    horz_profs.horz_wind_speed{ii} = vocalsRex.horz_wind_speed(index_horizontal(index_consec(ii)+1:(index_consec(ii+1))))';
+    horz_profs.horz_wind_direction{ii} = vocalsRex.horz_wind_direction(index_horizontal(index_consec(ii)+1:(index_consec(ii+1))))';
+
 
     % ----------- These variables are not being used -----------------
     %     horz_profs.SWT{ii} = vocalsRex.SWT(index_ascend_or_descend(index_consec(ii)+1:(index_consec(ii+1))))';
@@ -208,6 +211,8 @@ horz_profs.lwc_CDP(index2delete) = [];
 horz_profs.lwc_2DC(index2delete) = [];
 horz_profs.Nc_CDP(index2delete) = [];
 horz_profs.Nc_2DC(index2delete) = [];
+horz_profs.horz_wind_speed(index2delete) = [];
+horz_profs.horz_wind_direction(index2delete) = [];
 
 % ----------- These variables are not being used -----------------
 % horz_profs.SWT(index2delete) = [];
@@ -358,6 +363,9 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.Nc_CDP{ii} = 0;
         horz_profs.Nc_2DC{ii} = 0;
 
+        horz_profs.horz_wind_speed{ii} = 0;
+        horz_profs.horz_wind_direction{ii} = 0;
+
         % ----------- These variables are not being used -----------------
         %         horz_profs.SWT{ii} = 0;
         %         horz_profs.SWB{ii} = 0;
@@ -394,6 +402,9 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.lwc_2DC{ii} = 0;
         horz_profs.Nc_CDP{ii} = 0;
         horz_profs.Nc_2DC{ii} = 0;
+
+        horz_profs.horz_wind_speed{ii} = 0;
+        horz_profs.horz_wind_direction{ii} = 0;
 
         % ----------- These variables are not being used -----------------
         %         horz_profs.SWT{ii} = 0;
@@ -436,6 +447,9 @@ for ii = 1:length(horz_profs.lwc)
         horz_profs.lwc_2DC{ii} = horz_profs.lwc_2DC{ii}(firstIndex:lastIndex);
         horz_profs.Nc_CDP{ii} = horz_profs.Nc_CDP{ii}(firstIndex:lastIndex);
         horz_profs.Nc_2DC{ii} = horz_profs.Nc_2DC{ii}(firstIndex:lastIndex);
+
+        horz_profs.horz_wind_speed{ii} = horz_profs.horz_wind_speed{ii}(firstIndex:lastIndex);
+        horz_profs.horz_wind_direction{ii} = horz_profs.horz_wind_direction{ii}(firstIndex:lastIndex);
 
         % ----------- These variables are not being used -----------------
         %         horz_profs.SWT{ii} = horz_profs.SWT{ii}(firstIndex:lastIndex);
@@ -509,6 +523,9 @@ if sum(profile_idx_2delete)>0
     horz_profs.lwc_2DC(profile_idx_2delete) = [];
     horz_profs.Nc_CDP(profile_idx_2delete) = [];
     horz_profs.Nc_2DC(profile_idx_2delete) = [];
+
+    horz_profs.horz_wind_speed(profile_idx_2delete) = [];
+    horz_profs.horz_wind_direction(profile_idx_2delete) = [];
 
     % ----------- These variables are not being used -----------------
     %     horz_profs.SWT(profile_idx_2delete) = [];

@@ -1,6 +1,6 @@
 
 
-function vocalsRex = cropVocalsRex2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, Nc_threshold, modis, modisInputs)
+function vocalsRex = cropVocalsRex_vertProfs2MODIS(vocalsRex, lwc_threshold, stop_at_max_lwc, Nc_threshold, modis, modisInputs)
 
 
 % ----- Find all vertical profiles within VOCALS-REx data ------
@@ -76,7 +76,7 @@ if modisInputs.flags.useAdvection==false
     % ------------------------ NO ADVECTION -------------------------
     % if advection flag is false, simply find the MODIS pixels closest in
     % space to the vocals-rex in-situ measurements
-    
+
 
 
     % Find the MODIS pixel closest to the vocalsRex data by using the median of
@@ -101,7 +101,7 @@ if modisInputs.flags.useAdvection==false
 
     % Find the MODIS pixel closest to the vocalsRex data by using the first
     % latitude and longitude point of the vertical profile
-    
+
     % First let's find the median location of the original vocals rex data
     vr_lat_first = vocalsRex.latitude(1);
     vr_long_first = vocalsRex.longitude(1);
@@ -117,12 +117,12 @@ if modisInputs.flags.useAdvection==false
     vocalsRex.modis_minDist_first = min_dist;            % meters
 
 
-    
-    
-    
+
+
+
     % Find the MODIS pixel closest to the vocalsRex data by using the last
     % latitude and longitude point of the vertical profile
-    
+
     % First let's find the median location of the original vocals rex data
     vr_lat_last = vocalsRex.latitude(end);
     vr_long_last = vocalsRex.longitude(end);
@@ -147,7 +147,13 @@ else
     mean_wind_speed = mean(vocalsRex.horz_wind_speed);      % m/s
 
     % use the median wind direction
-    median_wind_direction = median(vocalsRex.horz_wind_direction);         % degrees from north
+    % This is the direction the wind is coming from, NOT the direction the
+    % wind is blowing torwards
+    median_wind_from_direction = median(vocalsRex.horz_wind_direction);         % degrees from north (0 deg)
+
+    % compute the direction the wind is blowing towards using modulo
+    % arithmetic
+    median_wind_direction = mod(median_wind_from_direction + 180, 360);               % degrees from north (0 deg)
 
     % compute the time in seconds between the MODIS overpass and the
     % vocalsRex in-situ measurement
@@ -165,31 +171,39 @@ else
     % project the VOCALS location to a new location using this heading.
 
 
+    % First, find whether or not MODIS passed overhead before or after the
+    % VOCALS-REX made in-situ measurements
+
+    % if true, then MODIS passed overhead after VOCALS sampled the cloud
+    % set this to be a value of 1
+    position_change = modis_timeUTC>vocalsRex.time_utc;
+
+
+    % if position change is a logical 1, we have to move the VOCALS-REx
+    % in-situ cloud position forward in time. Use the median_wind_direction
+    azimuth_angle = zeros(1, n_data_VR);
+    azimuth_angle(position_change) = median_wind_direction;
+
+    % if position change if logical 0, we have to move the VOCALS-REx
+    % in-situ cloud position backwards in time. Use the
+    % median_wind_from_direction
+    azimuth_angle(~position_change) = median_wind_from_direction;
+
+
+    % Use the reckon function to compute the new lat long position.
+    % Inputs are the original lat/long, the distance travelled and the
+    % azimuth, which is the angle between the direction of travel and
+    % true north. Or, as MATLAB puts it, it is the angle between the
+    % local meridian line and the direction of travel, where the angle
+    % is swept out in the clockwise direction.
+    % (0 - due north, 90 - due east, 180 - due west etc.)
+    [new_lat, new_long] = reckon(vr_lat, vr_long, dist_m, azimuth_angle, wgs84);
+
+
 
 
     % ---- Using the Median Position of VOCALS-REx during sampling ----
 
-
-    % First let's find the median location of the original vocals rex data
-    vr_lat_median = median(vocalsRex.latitude);
-    vr_long_median = median(vocalsRex.longitude);
-
-    [~, idx] = min(abs(vocalsRex.latitude - vr_lat_median));
-
-    % did MODIS pass overhead before or after vocals sampled the cloud?
-    if modis_timeUTC<vocalsRex.time_utc(idx)
-        % then MODIS passed overhead before VOCALS sampled the cloud
-        position_change = -1;
-
-    elseif modis_timeUTC>vocalsRex.time_utc(idx)
-        % then MODIS passed overhead after VOCALS sampled the cloud
-        position_change = 1;
-
-    else
-
-        error([newline, 'MODIS passed overhead during the VOCALS-REx measurement. I dont know what to do.', newline])
-
-    end
 
     % So I start with some lat and long position. To move along a sphere, I
     % need to invoke spherical trigonometry. But if I incorrectly use circular
@@ -202,42 +216,67 @@ else
     % 7.5 m/s. Over 30 minutes, this would travel a distance of 13.5 km or
     % 1.3e4 meters, roughly 1/1000 th of Earth's circumference
 
-    
 
-    % nudge the latitude by a small amount proportional to the wind heading
-    % direction
-    dLat = 0.00001 * cosd(median_wind_direction);
-    Lat2Add = dLat;
+    % ------------------------ OLD CODE --------------------------------
+    %     % First let's find the median location of the original vocals rex data
+    %     vr_lat_median = median(vocalsRex.latitude);
+    %     vr_long_median = median(vocalsRex.longitude);
+    %
+    %     [~, idx] = min(abs(vocalsRex.latitude - vr_lat_median));
+    %
+    %     % did MODIS pass overhead before or after vocals sampled the cloud?
+    %     if modis_timeUTC<vocalsRex.time_utc(idx)
+    %         % then MODIS passed overhead before VOCALS sampled the cloud
+    %         position_change = -1;
+    %
+    %     elseif modis_timeUTC>vocalsRex.time_utc(idx)
+    %         % then MODIS passed overhead after VOCALS sampled the cloud
+    %         position_change = 1;
+    %
+    %     else
+    %
+    %         error([newline, 'MODIS passed overhead during the VOCALS-REx measurement. I dont know what to do.', newline])
+    %
+    %     end
+    %
 
-    % nudge the longitude by a small amount proportional to the wind heading
-    % direction
-    dLong = 0.00001 * sind(median_wind_direction);
-    Long2Add = dLong;
+    %     % nudge the latitude by a small amount proportional to the wind heading
+    %     % direction
+    %     dLat = 0.00001 * cosd(median_wind_direction);
+    %     Lat2Add = dLat;
+    %
+    %     % nudge the longitude by a small amount proportional to the wind heading
+    %     % direction
+    %     dLong = 0.00001 * sind(median_wind_direction);
+    %     Long2Add = dLong;
+    %
+    %     % compute the linear distance between two points on an ellipsoid
+    %     d = distance(vr_lat_median, vr_long_median, vr_lat_median + position_change*Lat2Add, vr_long_median + position_change*Long2Add, wgs84);
+    %
+    %     % step d until it is equal to the distance travelled by the cloud
+    %     % during the time inbetween the VOCALS-REx sampling time and the MODIS
+    %     % overpass
+    %     while d<dist_m
+    %
+    %         Lat2Add = Lat2Add + dLat;
+    %         Long2Add = Long2Add + dLong;
+    %         d = distance(vr_lat_median, vr_long_median, vr_lat_median + position_change*Lat2Add, vr_long_median + position_change*Long2Add, wgs84);
+    %
+    %     end
+    %
+    %     % record the new lat/long position of the cloud
+    %     new_lat_median = vr_lat_median + position_change*Lat2Add;
+    %     new_long_median = vr_long_median + position_change*Long2Add;
+    % ----------------------------------------------------------------
 
-    % compute the linear distance between two points on an ellipsoid
-    d = distance(vr_lat_median, vr_long_median, vr_lat_median + position_change*Lat2Add, vr_long_median + position_change*Long2Add, wgs84);
 
-    % step d until it is equal to the distance travelled by the cloud
-    % during the time inbetween the VOCALS-REx sampling time and the MODIS
-    % overpass
-    while d<dist_m
-
-        Lat2Add = Lat2Add + dLat;
-        Long2Add = Long2Add + dLong;
-        d = distance(vr_lat_median, vr_long_median, vr_lat_median + position_change*Lat2Add, vr_long_median + position_change*Long2Add, wgs84);
-
-    end
-
-    % record the new lat/long position of the cloud
-    new_lat_median = vr_lat_median + position_change*Lat2Add;
-    new_long_median = vr_long_median + position_change*Long2Add;
 
 
     % Find the MODIS pixel closest to the vocalsRex data by using the median of
     % the VOCALS-REx latitude and longitude
 
     %dist_btwn_MODIS_and_VR = sqrt((double(modis_lat) - new_lat_median).^2 + (double(modis_long) - new_long_median).^2);
-    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat_median, new_long_median, wgs84);
+    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, median(new_lat), median(new_long), wgs84);
 
     [min_dist, index_minDist] = min(dist_btwn_MODIS_and_VR, [], 'all');
     % save this index so we know what MODIs pixel to use in comparison
@@ -251,60 +290,12 @@ else
 
     % ---- Using the first Position of VOCALS-REx during sampling ----
 
-    % First let's find the median location of the original vocals rex data
-    vr_lat_first = vocalsRex.latitude(1);
-    vr_long_first = vocalsRex.longitude(1);
-
-    % did MODIS pass overhead before or after vocals sampled the cloud?
-    if modis_timeUTC<vocalsRex.time_utc(1)
-        % then MODIS passed overhead before VOCALS sampled the cloud
-        position_change = -1;
-
-    elseif modis_timeUTC>vocalsRex.time_utc(1)
-        % then MODIS passed overhead after VOCALS sampled the cloud
-        position_change = 1;
-
-    else
-
-        error([newline, 'MODIS passed overhead during the VOCALS-REx measurement. I dont know what to do.', newline])
-
-    end
-
-
-    % nudge the latitude by a small amount proportional to the wind heading
-    % direction
-    dLat = 0.00001 * cosd(median_wind_direction);
-    Lat2Add = dLat;
-
-    % nudge the longitude by a small amount proportional to the wind heading
-    % direction
-    dLong = 0.00001 * sind(median_wind_direction);
-    Long2Add = dLong;
-
-    % compute the linear distance between two points on an ellipsoid
-    d = distance(vr_lat_first, vr_long_first, vr_lat_first + position_change*Lat2Add, vr_long_first + position_change*Long2Add, wgs84);
-
-    % step d until it is equal to the distance travelled by the cloud
-    % during the time inbetween the VOCALS-REx sampling time and the MODIS
-    % overpass
-    while d<dist_m
-
-        Lat2Add = Lat2Add + dLat;
-        Long2Add = Long2Add + dLong;
-        d = distance(vr_lat_first, vr_long_first, vr_lat_first + position_change*Lat2Add, vr_long_first + position_change*Long2Add, wgs84);
-
-    end
-
-    % record the new lat/long position of the cloud
-    new_lat_first = vr_lat_first + position_change*Lat2Add;
-    new_long_first = vr_long_first + position_change*Long2Add;
-
 
     % Find the MODIS pixel closest to the vocalsRex data by using the
     % position of VOCALS-REx at the first sample of the vert profile
 
     %dist_btwn_MODIS_and_VR = sqrt((double(modis_lat) - new_lat_first).^2 + (double(modis_long) - new_long_first).^2);
-    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat_first, new_long_first, wgs84);
+    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat(1), new_long(1), wgs84);
 
     [min_dist, index_minDist] = min(dist_btwn_MODIS_and_VR, [], 'all');
     % save this index so we know what MODIs pixel to use in comparison
@@ -317,60 +308,12 @@ else
 
     % ---- Using the last Position of VOCALS-REx during sampling ----
 
-    % First let's find the median location of the original vocals rex data
-    vr_lat_last = vocalsRex.latitude(end);
-    vr_long_last = vocalsRex.longitude(end);
-
-    % did MODIS pass overhead before or after vocals sampled the cloud?
-    if modis_timeUTC<vocalsRex.time_utc(end)
-        % then MODIS passed overhead before VOCALS sampled the cloud
-        position_change = -1;
-
-    elseif modis_timeUTC>vocalsRex.time_utc(end)
-        % then MODIS passed overhead after VOCALS sampled the cloud
-        position_change = 1;
-
-    else
-
-        error([newline, 'MODIS passed overhead during the VOCALS-REx measurement. I dont know what to do.', newline])
-
-    end
-
-
-    % nudge the latitude by a small amount proportional to the wind heading
-    % direction
-    dLat = 0.00001 * cosd(median_wind_direction);
-    Lat2Add = dLat;
-
-    % nudge the longitude by a small amount proportional to the wind heading
-    % direction
-    dLong = 0.00001 * sind(median_wind_direction);
-    Long2Add = dLong;
-
-    % compute the linear distance between two points on an ellipsoid
-    d = distance(vr_lat_last, vr_long_last, vr_lat_last + position_change*Lat2Add, vr_long_last + position_change*Long2Add, wgs84);
-
-    % step d until it is equal to the distance travelled by the cloud
-    % during the time inbetween the VOCALS-REx sampling time and the MODIS
-    % overpass
-    while d<dist_m
-
-        Lat2Add = Lat2Add + dLat;
-        Long2Add = Long2Add + dLong;
-        d = distance(vr_lat_last, vr_long_last, vr_lat_last + position_change*Lat2Add, vr_long_last + position_change*Long2Add, wgs84);
-
-    end
-
-    % record the new lat/long position of the cloud
-    new_lat_last = vr_lat_last + position_change*Lat2Add;
-    new_long_last = vr_long_last + position_change*Long2Add;
-
 
     % Find the MODIS pixel closest to the vocalsRex data by using the
     % position of VOCALS-REx at the first sample of the vert profile
 
     %dist_btwn_MODIS_and_VR = sqrt((double(modis_lat) - new_lat_last).^2 + (double(modis_long) - new_long_last).^2);
-    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat_last, new_long_last, wgs84);
+    dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat(end), new_long(end), wgs84);
 
     [min_dist, index_minDist] = min(dist_btwn_MODIS_and_VR, [], 'all');
     % save this index so we know what MODIs pixel to use in comparison
