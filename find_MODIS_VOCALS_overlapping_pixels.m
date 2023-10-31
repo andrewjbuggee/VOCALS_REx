@@ -22,7 +22,7 @@ uncertaintyLimit = 10;                              % percentage
 
 % Let's check to see that the MODIS data that coincides with the cloud
 % profile chosen within vocals-Rex matches these requirements
-indexes2check = [vocalsRex.modisIndex_minDist_first, vocalsRex.modisIndex_minDist_median, vocalsRex.modisIndex_minDist_last];
+indexes2check = vocalsRex.modisIndex_minDist;
 
 for nn = 1:numel(indexes2check)
 
