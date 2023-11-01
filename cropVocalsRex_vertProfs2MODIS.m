@@ -340,12 +340,12 @@ else
     % is swept out in the clockwise direction.
     % (0 - due north, 90 - due east, 180 - due west etc.)
 
-    [new_lat, new_long] = reckon(vr_lat', vr_long', dist_m, azimuth_angle, wgs84);
+    [lat_withAdvection, long_withAdvection] = reckon(vr_lat', vr_long', dist_m, azimuth_angle, wgs84);
 
 
     parfor nn = 1:n_data_VR
 
-        dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, new_lat(nn), new_long(nn), wgs84);
+        dist_btwn_MODIS_and_VR = distance(modis_lat, modis_long, lat_withAdvection(nn), long_withAdvection(nn), wgs84);
 
         [min_dist, index_minDist] = min(dist_btwn_MODIS_and_VR, [], 'all');
         % save this index so we know what MODIs pixel to use in comparison
@@ -378,6 +378,11 @@ idx_unique_logic = ismember(1:length(vocalsRex.modisIndex_minDist), idx_unique);
 % delete the indices that are not found above
 
 vocalsRex.modisIndex_minDist = vocalsRex.modisIndex_minDist(idx_unique_logic);
+
+
+% Save the new lat and long
+vocalsRex.lat_withAdvection = lat_withAdvection;
+vocalsRex.long_withAdvection = long_withAdvection;
 
 
 
