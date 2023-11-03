@@ -823,7 +823,8 @@ end
 
 % We do NOT include the zenith angle of the plane as it travels through the
 % cloud because we are concerned with the cloud optical depth and not the
-% optical depth along the slant path. 
+% optical depth along the slant path. Cloud optical depth is defined soley
+% as the optical depth over the vertical dimension of a cloud.
 
 % if there is more than one profile, the data will be stored in a cell
 % array
@@ -881,7 +882,7 @@ if iscell(vert_profs.altitude)==true
                 end
 
                 total_Nc_meters = vert_profs.Nc{nn}(vector_length-ii:vector_length).*1e6;                           % #/m^3
-                altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length);
+                altitude = vert_profs.altitude{nn}(end) -  vert_profs.altitude{nn}(vector_length-ii:vector_length); % meters
 
 
                 % We assume the droplet size is appreciably larger than the
@@ -924,7 +925,7 @@ if iscell(vert_profs.altitude)==true
                 end
 
                 total_Nc_meters = vert_profs.Nc{nn}(1:ii+1).*1e6;                           % #/m^3
-                altitude = vert_profs.altitude{nn}(1) -  vert_profs.altitude{nn}(1:ii+1);
+                altitude = vert_profs.altitude{nn}(1) -  vert_profs.altitude{nn}(1:ii+1);   % meters
 
 
                 % We assume the droplet size is appreciably larger than the
@@ -933,7 +934,7 @@ if iscell(vert_profs.altitude)==true
                 % to the following equation for optical depth:
                 % tau = integral( Q_e * pi * r^2(z) * N_c(z) ) dz
                 % where Q_e is set to 2
-                vert_profs.tau{nn}(ii) = 2*pi* trapz(altitude, re_meters.^2 .* total_Nc_meters);
+                %vert_profs.tau{nn}(ii) = 2*pi* trapz(altitude, re_meters.^2 .* total_Nc_meters);
 
 
                 % Or we can use a pre-computed mie table to use a more

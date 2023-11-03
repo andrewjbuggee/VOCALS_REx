@@ -234,6 +234,10 @@ else
 
     end
 
+    % Save the new lat and long
+    vocalsRex.lat_withAdvection = lat_withAdvection;
+    vocalsRex.long_withAdvection = long_withAdvection;
+
 
 end
 
@@ -256,9 +260,7 @@ idx_unique_logic = ismember(1:length(vocalsRex.modisIndex_minDist), idx_unique);
 
 vocalsRex.modisIndex_minDist = vocalsRex.modisIndex_minDist(idx_unique_logic);
 
-% Save the new lat and long
-vocalsRex.lat_withAdvection = lat_withAdvection;
-vocalsRex.long_withAdvection = long_withAdvection;
+
 
 
 
