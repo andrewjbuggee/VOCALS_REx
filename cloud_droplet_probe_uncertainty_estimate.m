@@ -86,8 +86,8 @@ function [droplet_radius_uncertainty] = cloud_droplet_probe_uncertainty_estimate
 % microns will have an uncertainy of 15%, and everything greater than that
 % will have an uncertainty of 10%.
 
-re_uncertainty_0_5 = 0.10;      % percentage
-re_uncertainty_5_30 = 0.05;      % percentage
+re_uncertainty_0_5 = 0.15;      % percentage
+re_uncertainty_5_30 = 0.10;      % percentage
 %re_uncertainty_all = 0.1;          % percentage
 
 
