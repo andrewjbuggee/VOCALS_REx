@@ -1,4 +1,4 @@
-%% Calculate ensemble statistics of cloud top and bottom radii measured by VOCALS-REx
+%% Calculate ensemble statistics vertical profiles measured by VOCALS-REx
 
 
 % Andrew John Buggee

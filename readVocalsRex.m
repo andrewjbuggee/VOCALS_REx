@@ -443,15 +443,22 @@ if flag_2DC_data_is_conforming==true
 
     %re4 = sum(Nc./4 .* diff(droplet_matrix_edges.^4,1,1), 1)./sum(Nc./3 .*diff(droplet_matrix_edges.^3,1,1),1) *1e4;                                               % microns
 
+    % ------------------------------------------------------------------
+    % ----------------- Compute the Effective Radius -------------------
+    % ------------------------------------------------------------------
+    
     re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);                 % microns
 
     
     % Now compute the effective radius for just the CDP instrument
     index_r_cdp = (drop_radius_bin_center<=drop_radius_bin_center_CDP(end))';       % preform this in microns
 
+
+    % ------------------ Re CDP ---------------------
     % compute the effective radius using only CDP data
 %     re_CDP = double(sum(droplet_matrix_center(index_r_cdp,:).^3 .* Nc(index_r_cdp, :), 1)./...
 %         sum(droplet_matrix_center(index_r_cdp, :).^2 .* Nc(index_r_cdp, :),1) * 1e4);                 % microns
+    
     if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
@@ -484,7 +491,8 @@ if flag_2DC_data_is_conforming==true
             % SPS 25, then we simply read in all data
             re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
     end
-
+    
+    % ------------------ Re 2DC ---------------------
     % compute the effective radius using only 2DC data
     re_2DC = double(sum(droplet_matrix_center(~index_r_cdp, :).^3 .* Nc(~index_r_cdp, :), 1)./...
         sum(droplet_matrix_center(~index_r_cdp, :).^2 .* Nc(~index_r_cdp, :),1) * 1e4);                 % microns
@@ -493,9 +501,9 @@ if flag_2DC_data_is_conforming==true
 
 
 
-
-    % ---------- Compute the total Number Concentration -----------
-
+    % ------------------------------------------------------------------
+    % ---------- Compute the total Number Concentration ---------------
+    % ------------------------------------------------------------------
     % Lets compute the total number concetration at each time step by
     % integrating over r
     %total_Nc = trapz(drop_bins, Nc,1);       % cm^(-3)
@@ -522,10 +530,13 @@ if flag_2DC_data_is_conforming==true
     % per meter cubed
 
     lwc = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
+    %lwc = reshape(ncread(filename, 'PLWCC1'), 1, []);                                                  % g/m^3 - PMS-King corrected liquid water content
 
 
+    % ------------------------- CDP LWC ----------------------------
     % compute the liquid water content measured by the CDP Instrument
     %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
+    
     if strcmp(filename(end-39:end-35), 'SPS_1')==true
             % If we wish to read in 1Hz data, take the median at each time
             % step. 
@@ -559,8 +570,11 @@ if flag_2DC_data_is_conforming==true
             lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
     end
 
+
+    % ------------------------- 2DC LWC ----------------------------
     % compute the liquid water content measured by the 2DC Instrument
     %lwc_2DC = 4/3 * pi *  rho_lw * sum(Nc(~index_r_cdp, :) .* droplet_matrix_center(~index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
+
     if exist('C1DC_RPC_info', 'var')==true || exist('C1DCA_RPC_info', 'var')==true
         lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPC'), 1, []);
 
@@ -575,7 +589,7 @@ if flag_2DC_data_is_conforming==true
 
 else
 
-    % If the 2DC is non-forming, let's first check to see if it has any
+    % If the 2DC is nonconforming, let's first check to see if it has any
     % non-zero values.
 
     if sum(num_concentration_2DC, "all")==0
