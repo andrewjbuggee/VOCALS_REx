@@ -709,9 +709,11 @@ else
         % Use the correction described by Painemal and Zuidema (2011) page 4.
         % The bias correction comes from solving for the difference between the
         % CDP meausred LWC, which tends to be over estimated, and the King hot
-        % wire probe LWC, which in our case is the Gerber PV-100 LWC
-
-        droplet_matrix_center = droplet_matrix_center./repmat(a.^(1/3), size(droplet_matrix_center,1), 1);
+        % wire probe LWC, which in our case is the Gerber PV-100 LWC. The
+        % radius correction only applies for the CDP instrument bins.
+    
+        droplet_matrix_center(index_r_cdp, :) = droplet_matrix_center(index_r_cdp,:)./...
+                                    repmat(a.^(1/3), sum(index_r_cdp), 1);                      % cm
 
 
         re_CDP = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);      % microns
