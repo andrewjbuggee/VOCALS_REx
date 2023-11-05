@@ -18,6 +18,7 @@ time = reshape(time, 1, length(time));
 startTime = [str2double(info.Variables(1).Attributes(3).Value(26:27)),...
     str2double(info.Variables(1).Attributes(3).Value(29:30))];      % Start time of the data log in UTC
 
+
 % ----------------------------------------------------------------
 % ----------- cloud droplet probe measurements (CDP) -------------
 % ----------------------------------------------------------------
@@ -53,6 +54,7 @@ drop_radius_bin_center_CDP = drop_radius_bin_edges_CDP(1:end-1) + diff(drop_radi
 
 %drop_size_dist_CDP2 = drop_size_dist_CDP;
 num_concentration_CDP = num_concentration_CDP(first_bin_CDP:last_bin_CDP,1,:);          % #/cm^3
+
 
 
 
@@ -297,7 +299,7 @@ if exist("num_concentration_2DC", 'var')==false
 
                 % ----------------- Read the LWC data --------------
                 lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPI'), 1, []);              % g/m^3 - 2DC liquid water content
-                
+
                 % -------- We cannot compute the effective radius --------
                 % Wihtout number concentration data, we cannot compute the
                 % 2DC effective radius. And I haven't found it in the list
@@ -431,74 +433,6 @@ if flag_2DC_data_is_conforming==true
 
     % --- IF TRUE, WE HAVE REAL 2DC DATA, NOT THE 260X EMULATION DATA ---
 
-    % Compute the ratio of the third moment to the second moment and convert
-    % back to microns
-    %re = 1e4 * trapz(drop_bins_cm, droplet_matrix.^3 .* nr, 1)./trapz(drop_bins_cm, droplet_matrix.^2 .* nr, 1);
-
-    %re = trapz(drop_bins, droplet_matrix.^3 .* Nc, 1)./trapz(drop_bins, droplet_matrix.^2 .* Nc, 1);
-
-    %re2 = sum(droplet_matrix_firstEdge.^3 .* Nc, 1)./sum(droplet_matrix_firstEdge.^2 .* Nc,1) * 1e4;             % microns
-
-    %re3 = trapz(drop_radius_bin_center2', droplet_matrix_center2.^3 .* dN_dr,1)./ trapz(drop_radius_bin_center2', droplet_matrix_center2.^2 .* dN_dr,1);              % microns
-
-    %re4 = sum(Nc./4 .* diff(droplet_matrix_edges.^4,1,1), 1)./sum(Nc./3 .*diff(droplet_matrix_edges.^3,1,1),1) *1e4;                                               % microns
-
-    % ------------------------------------------------------------------
-    % ----------------- Compute the Effective Radius -------------------
-    % ------------------------------------------------------------------
-    
-    re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);                 % microns
-
-    
-    % Now compute the effective radius for just the CDP instrument
-    index_r_cdp = (drop_radius_bin_center<=drop_radius_bin_center_CDP(end))';       % preform this in microns
-
-
-    % ------------------ Re CDP ---------------------
-    % compute the effective radius using only CDP data
-%     re_CDP = double(sum(droplet_matrix_center(index_r_cdp,:).^3 .* Nc(index_r_cdp, :), 1)./...
-%         sum(droplet_matrix_center(index_r_cdp, :).^2 .* Nc(index_r_cdp, :),1) * 1e4);                 % microns
-    
-    if strcmp(filename(end-39:end-35), 'SPS_1')==true
-            % If we wish to read in 1Hz data, take the median at each time
-            % step. 
-            re_CDP = ncread(filename, 'REFFD_RWO');         % microns
-            
-            % Check to make sure we only have 1Hz data. Sometimes we dont!
-            if size(re_CDP,1)*size(re_CDP,2) == size(time,1)*size(time,2)
-                re_CDP = reshape(re_CDP, 1, []);
-                
-            elseif size(re_CDP,1)*size(re_CDP,2) > size(time,1)*size(time,2)
-
-                % find which dimension has the 10 Hz data
-                if size(re_CDP,1)==10
-                    re_CDP = median(re_CDP, 1);
-
-                elseif size(re_CDP,2)==10
-                    re_CDP = median(re_CDP, 2);
-                    re_CDP = reshape(re_CDP, 1, []);
-                end
-
-            else
-
-                error([newline, 'I dont know what to do with the re_CDP data.', newline])
-
-            end
-
-
-        elseif strcmp(filename(40:end-35), 'SPS_25')==true
-            % If we wish to have 10 Hz data (of which the files are labeled
-            % SPS 25, then we simply read in all data
-            re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
-    end
-    
-    % ------------------ Re 2DC ---------------------
-    % compute the effective radius using only 2DC data
-    re_2DC = double(sum(droplet_matrix_center(~index_r_cdp, :).^3 .* Nc(~index_r_cdp, :), 1)./...
-        sum(droplet_matrix_center(~index_r_cdp, :).^2 .* Nc(~index_r_cdp, :),1) * 1e4);                 % microns
-
-
-
 
 
     % ------------------------------------------------------------------
@@ -508,6 +442,9 @@ if flag_2DC_data_is_conforming==true
     % integrating over r
     %total_Nc = trapz(drop_bins, Nc,1);       % cm^(-3)
     total_Nc = double(sum(Nc,1));                     % cm^(-3)
+
+    % Now compute the effective radius for just the CDP instrument
+    index_r_cdp = (drop_radius_bin_center<=drop_radius_bin_center_CDP(end))';       % preform this in microns
 
     % Now compute the total number concentration for the CDP instrument
     total_Nc_CDP = double(sum(Nc(index_r_cdp,:),1));                     % cm^(-3)
@@ -521,7 +458,7 @@ if flag_2DC_data_is_conforming==true
     % --------------- Compute liquid water content ---------------------
     % ------------------------------------------------------------------
 
-    % Lets compute the total liquid water content at each time 
+    % Lets compute the total liquid water content at each time
 
     % Lets compute the liquid water content and liquid water path
     rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
@@ -529,58 +466,147 @@ if flag_2DC_data_is_conforming==true
     % we have to convert re to cm in order to have the finals units be in grams
     % per meter cubed
 
-    lwc = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
-    %lwc = reshape(ncread(filename, 'PLWCC1'), 1, []);                                                  % g/m^3 - PMS-King corrected liquid water content
+    lwc = double( 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1) );        % grams of liquid water/meter cubed of air
 
+    % **** Painemal and Zuidema (2011) found a bias in the CDP flight
+    % measurements of LWC. To correct for this, they set the CDP LWC values
+    % to be equal to the measurements made by the King hot wire probe,
+    % which they claim has a high correlation with the Gerber PV-100 probe.
+    % We will preform a similar correction by setting the CDP LWC to be
+    % equal to the PV-100 probe data, which is consistantly less than the
+    % CDP measurements.
+    lwc_PV100 = reshape(ncread(filename, 'XGLWC'), 1, []);                         % g/m^3 - Gerber PV-100 Probe Liquid Water Content
 
+    % Set values less than 0 to be 0
+    lwc_PV100(lwc_PV100<0) = 0;
     % ------------------------- CDP LWC ----------------------------
     % compute the liquid water content measured by the CDP Instrument
-    %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
-    
-    if strcmp(filename(end-39:end-35), 'SPS_1')==true
-            % If we wish to read in 1Hz data, take the median at each time
-            % step. 
-            lwc_CDP = ncread(filename, 'PLWCD_RWO');                % g/m^3
+    lwc_CDP = double( 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1) );                  % grams of liquid water/meter cubed of air
 
-            % Check to make sure we only have 1Hz data. Sometimes we dont!
-            if size(lwc_CDP,1)*size(lwc_CDP,2) == size(time,1)*size(time,2)
-                lwc_CDP = reshape(lwc_CDP, 1, []);
-                
-            elseif size(lwc_CDP,1)*size(lwc_CDP,2) > size(time,1)*size(time,2)
+    % Solve for the coefficient (Painemal and Zuidema 2011 pg 4
+    a = lwc_CDP./lwc_PV100;
 
-                % find which dimension has the 10 Hz data
-                if size(lwc_CDP,1)==10
-                    lwc_CDP = median(lwc_CDP, 1);
+    % set NaN values to 1
+    a(isnan(a)) = 1;
 
-                elseif size(lwc_CDP,2)==10
-                    lwc_CDP = median(lwc_CDP, 2);
-                    lwc_CDP = reshape(lwc_CDP, 1, []);
-                end
+    % compute the new LWC_CDP values
+    lwc_CDP = lwc_CDP./a;
 
-            else
-
-                error([newline, 'I dont know what to do with the lwc_CDP data.', newline])
-
-            end
-
-
-        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
-            % If we wish to have 10 Hz data (of which the files are labeled
-            % SPS 25, then we simply read in all data
-            lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
-    end
+    %     if strcmp(filename(end-39:end-35), 'SPS_1')==true
+    %             % If we wish to read in 1Hz data, take the median at each time
+    %             % step.
+    %             lwc_CDP = ncread(filename, 'PLWCD_RWO');                % g/m^3
+    %
+    %             % Check to make sure we only have 1Hz data. Sometimes we dont!
+    %             if size(lwc_CDP,1)*size(lwc_CDP,2) == size(time,1)*size(time,2)
+    %                 lwc_CDP = reshape(lwc_CDP, 1, []);
+    %
+    %             elseif size(lwc_CDP,1)*size(lwc_CDP,2) > size(time,1)*size(time,2)
+    %
+    %                 % find which dimension has the 10 Hz data
+    %                 if size(lwc_CDP,1)==10
+    %                     lwc_CDP = median(lwc_CDP, 1);
+    %
+    %                 elseif size(lwc_CDP,2)==10
+    %                     lwc_CDP = median(lwc_CDP, 2);
+    %                     lwc_CDP = reshape(lwc_CDP, 1, []);
+    %                 end
+    %
+    %             else
+    %
+    %                 error([newline, 'I dont know what to do with the lwc_CDP data.', newline])
+    %
+    %             end
+    %
+    %
+    %         elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
+    %             % If we wish to have 10 Hz data (of which the files are labeled
+    %             % SPS 25, then we simply read in all data
+    %             lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
+    %     end
 
 
     % ------------------------- 2DC LWC ----------------------------
     % compute the liquid water content measured by the 2DC Instrument
-    %lwc_2DC = 4/3 * pi *  rho_lw * sum(Nc(~index_r_cdp, :) .* droplet_matrix_center(~index_r_cdp, :).^3,1);                  % grams of liquid water/meter cubed of air
+    lwc_2DC = double( 4/3 * pi *  rho_lw * sum(Nc(~index_r_cdp, :) .* droplet_matrix_center(~index_r_cdp, :).^3,1) );                  % grams of liquid water/meter cubed of air
 
-    if exist('C1DC_RPC_info', 'var')==true || exist('C1DCA_RPC_info', 'var')==true
-        lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPC'), 1, []);
+    %     if exist('C1DC_RPC_info', 'var')==true || exist('C1DCA_RPC_info', 'var')==true
+    %         lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPC'), 1, []);
+    %
+    %     elseif exist('C1DC_RPI_info', 'var')==true
+    %         lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPI'), 1, []);
+    %     end
 
-    elseif exist('C1DC_RPI_info', 'var')==true
-        lwc_2DC = reshape(ncread(filename, 'PLWC1DC_RPI'), 1, []);
-    end
+
+
+    % *** Now recalculate the total LWC **
+
+    lwc = lwc_CDP + lwc_2DC;            % g/m^3
+
+
+
+
+
+    % ------------------------------------------------------------------
+    % ----------------- Compute the Effective Radius -------------------
+    % ------------------------------------------------------------------
+
+    % Compute the ratio of the third moment to the second moment and convert
+    % back to microns
+
+    % Use the correction described by Painemal and Zuidema (2011) page 4.
+    % The bias correction comes from solving for the difference between the
+    % CDP meausred LWC, which tends to be over estimated, and the King hot
+    % wire probe LWC, which in our case is the Gerber PV-100 LWC
+
+    droplet_matrix_center = droplet_matrix_center./repmat(a.^(1/3), size(droplet_matrix_center,1), 1);
+
+    re = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);                 % microns
+
+
+
+    % ------------------ Re CDP ---------------------
+    % compute the effective radius using only CDP data
+    re_CDP = double(sum(droplet_matrix_center(index_r_cdp,:).^3 .* Nc(index_r_cdp, :), 1)./...
+        sum(droplet_matrix_center(index_r_cdp, :).^2 .* Nc(index_r_cdp, :),1) * 1e4);                 % microns
+
+    %     if strcmp(filename(end-39:end-35), 'SPS_1')==true
+    %             % If we wish to read in 1Hz data, take the median at each time
+    %             % step.
+    %             re_CDP = ncread(filename, 'REFFD_RWO');         % microns
+    %
+    %             % Check to make sure we only have 1Hz data. Sometimes we dont!
+    %             if size(re_CDP,1)*size(re_CDP,2) == size(time,1)*size(time,2)
+    %                 re_CDP = reshape(re_CDP, 1, []);
+    %
+    %             elseif size(re_CDP,1)*size(re_CDP,2) > size(time,1)*size(time,2)
+    %
+    %                 % find which dimension has the 10 Hz data
+    %                 if size(re_CDP,1)==10
+    %                     re_CDP = median(re_CDP, 1);
+    %
+    %                 elseif size(re_CDP,2)==10
+    %                     re_CDP = median(re_CDP, 2);
+    %                     re_CDP = reshape(re_CDP, 1, []);
+    %                 end
+    %
+    %             else
+    %
+    %                 error([newline, 'I dont know what to do with the re_CDP data.', newline])
+    %
+    %             end
+    %
+    %
+    %         elseif strcmp(filename(40:end-35), 'SPS_25')==true
+    %             % If we wish to have 10 Hz data (of which the files are labeled
+    %             % SPS 25, then we simply read in all data
+    %             re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
+    %     end
+
+    % ------------------ Re 2DC ---------------------
+    % compute the effective radius using only 2DC data
+    re_2DC = double(sum(droplet_matrix_center(~index_r_cdp, :).^3 .* Nc(~index_r_cdp, :), 1)./...
+        sum(droplet_matrix_center(~index_r_cdp, :).^2 .* Nc(~index_r_cdp, :),1) * 1e4);                 % microns
 
 
 
@@ -601,31 +627,11 @@ else
         % HOWEVER, if the entire 2DC number concentration data set consists
         % of zeros, the computed effective radius value IS the effective
         % radius of the CDP instrument
-        %re_CDP = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);      % microns
 
-        % reshape stacks columns. Check to see if this is sps1 or sps25
-        if strcmp(filename(end-39:end-35), 'SPS_1')==true
-            % If we wish to read in 1Hz data, take the median at each time
-            % step. 
-            re_CDP = ncread(filename, 'REFFD_RWO');
-            re_CDP = median(re_CDP, 1);
 
-        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
-            % If we wish to have 10 Hz data (of which the files are labeled
-            % SPS 25, then we simply read in all data
-            re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
-        end
-        
-        % Lets compute the total number concetration at each time step by
-        % first seperating it by instruments
-        % Again, because the number concentration data consists of only
-        % zeros for the 2DC instrument, the sum is only the contribution
-        % from the CDP instrument
-        total_Nc_CDP = double(sum(Nc,1));                     % cm^(-3)
 
-        % then the total Nc is the sum of the two
-        total_Nc = total_Nc_CDP + total_Nc_2DC;             % # / cm^{-3}
-
+        % Now compute the effective radius for just the CDP instrument
+        index_r_cdp = (drop_radius_bin_center<=drop_radius_bin_center_CDP(end))';       % preform this in microns
 
 
 
@@ -639,31 +645,56 @@ else
         % zeros for the 2DC instrument, the sum is only the contribution
         % from the CDP instrument
 
+        % **** Painemal and Zuidema (2011) found a bias in the CDP flight
+        % measurements of LWC. To correct for this, they set the CDP LWC values
+        % to be equal to the measurements made by the King hot wire probe,
+        % which they claim has a high correlation with the Gerber PV-100 probe.
+        % We will preform a similar correction by setting the CDP LWC to be
+        % equal to the PV-100 probe data, which is consistantly less than the
+        % CDP measurements.
+        lwc_PV100 = reshape(ncread(filename, 'XGLWC'), 1, []);                         % g/m^3 - Gerber PV-100 Probe Liquid Water Content
+
+        % Set values less than 0 to be 0
+        lwc_PV100(lwc_PV100<0) = 0;
+        % ------------------------- CDP LWC ----------------------------
 
         % Lets compute the liquid water content and liquid water path
         rho_lw = 1e6;                                                   % g/m^3 - density of liquid water
 
+        % compute the liquid water content measured by the CDP Instrument
+        lwc_CDP = double( 4/3 * pi *  rho_lw * sum(Nc(index_r_cdp, :) .* droplet_matrix_center(index_r_cdp, :).^3,1) );                  % grams of liquid water/meter cubed of air
+
+        % Solve for the coefficient (Painemal and Zuidema 2011 pg 4
+        a = lwc_CDP./lwc_PV100;
+
+        % set NaN values to 1
+        a(isnan(a)) = 1;
+
+        % compute the new LWC_CDP values
+        lwc_CDP = lwc_CDP./a;
+
+
+
+
         % we have to convert re to cm in order to have the finals units be in grams
         % per meter cubed
 
-        %lwc_CDP = 4/3 * pi *  rho_lw * sum(Nc .* droplet_matrix_center.^3,1);                  % grams of liquid water/meter cubed of air
-        
-        if strcmp(filename(end-39:end-35), 'SPS_1')==true
-            % If we wish to read in 1Hz data, take the median at each time
-            % step. 
-            lwc_CDP = ncread(filename, 'PLWCD_RWO');            % g/m^3
-            lwc_CDP = median(lwc_CDP, 1);
-
-        elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
-            % If we wish to have 10 Hz data (of which the files are labeled
-            % SPS 25, then we simply read in all data
-            lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
-        end
+        %         if strcmp(filename(end-39:end-35), 'SPS_1')==true
+        %             % If we wish to read in 1Hz data, take the median at each time
+        %             % step.
+        %             lwc_CDP = ncread(filename, 'PLWCD_RWO');            % g/m^3
+        %             lwc_CDP = median(lwc_CDP, 1);
+        %
+        %         elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
+        %             % If we wish to have 10 Hz data (of which the files are labeled
+        %             % SPS 25, then we simply read in all data
+        %             lwc_CDP = reshape(ncread(filename, 'PLWCD_RWO'), 1, []);
+        %         end
 
         % compute the total liquid water content
         % Check to see if the data is SPS1 or SPS10
         if length(lwc_CDP)>length(time)
-            
+
             lwc = max(ncread(filename, 'PLWCD_RWO'), [], 1) + lwc_2DC;      % g/m^3
 
         elseif length(lwc_CDP)==length(time)
@@ -671,6 +702,50 @@ else
             lwc = lwc_CDP + lwc_2DC;              % g/m^3
 
         end
+
+
+        % Use the correction described by Painemal and Zuidema (2011) page 4.
+        % The bias correction comes from solving for the difference between the
+        % CDP meausred LWC, which tends to be over estimated, and the King hot
+        % wire probe LWC, which in our case is the Gerber PV-100 LWC
+
+        droplet_matrix_center = droplet_matrix_center./repmat(a.^(1/3), size(droplet_matrix_center,1), 1);
+
+
+        re_CDP = double(sum(droplet_matrix_center.^3 .* Nc, 1)./sum(droplet_matrix_center.^2 .* Nc,1) * 1e4);      % microns
+
+        % reshape stacks columns. Check to see if this is sps1 or sps25
+        %         if strcmp(filename(end-39:end-35), 'SPS_1')==true
+        %             % If we wish to read in 1Hz data, take the median at each time
+        %             % step.
+        %             re_CDP = ncread(filename, 'REFFD_RWO');
+        %             re_CDP = median(re_CDP, 1);
+        %
+        %         elseif strcmp(filename(end-40:end-35), 'SPS_25')==true
+        %             % If we wish to have 10 Hz data (of which the files are labeled
+        %             % SPS 25, then we simply read in all data
+        %             re_CDP = reshape(ncread(filename, 'REFFD_RWO'), 1, []);
+        %         end
+
+
+        % ------------------------------------------------------------------
+        % ---------- Compute the total Number Concentration ---------------
+        % ------------------------------------------------------------------
+
+        % Lets compute the total number concetration at each time step by
+        % first seperating it by instruments
+        % Again, because the number concentration data consists of only
+        % zeros for the 2DC instrument, the sum is only the contribution
+        % from the CDP instrument
+        total_Nc_CDP = double(sum(Nc,1));                     % cm^(-3)
+
+        % then the total Nc is the sum of the two
+        total_Nc = total_Nc_CDP + total_Nc_2DC;             % # / cm^{-3}
+
+
+
+
+
 
 
 
