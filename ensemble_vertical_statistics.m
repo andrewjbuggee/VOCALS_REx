@@ -10,9 +10,19 @@ clear variables
 
 % Read all the file names
 
-% Macbook folder name
-foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/'...
-    'VOCALS_REx/vocals_rex_data/SPS_1/'];
+if strcmp(whatComputer,'anbu8374')==true
+
+    foldername = ['/Users/anbu8374/Documents/MATLAB/HyperSpectral_Cloud_Retrieval/VOCALS_REx/',...
+        'vocals_rex_data/SPS_1/'];
+
+elseif strcmp(whatComputer,'andrewbuggee')==true
+
+    % Macbook folder name
+    foldername = ['/Users/andrewbuggee/Documents/MATLAB/CU Boulder/Hyperspectral_Cloud_Retrievals/'...
+        'VOCALS_REx/vocals_rex_data/SPS_1/'];
+
+end
+
 
 % read all file names in the above listed folder
 folder_contents = dir(foldername);
