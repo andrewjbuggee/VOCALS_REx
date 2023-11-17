@@ -900,7 +900,7 @@ if iscell(vert_profs.altitude)==true
                 % Or we could compute the average extinction efficiency
                 % over a droplet size distrubution
                 [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
-                    550, 'water', 'gamma');
+                    550, 'water', 'gamma', ii);
 
                 vert_profs.tau{nn}(ii) = pi* trapz(flipud(altitude), flipud(Qe_avg' .* re_meters.^2 .* total_Nc_meters));
 
@@ -945,7 +945,7 @@ if iscell(vert_profs.altitude)==true
                 % Or we could compute the average extinction efficiency
                 % over a droplet size distrubution
                 [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
-                    550, 'water', 'gamma');
+                    550, 'water', 'gamma', ii);
 
 
                 vert_profs.tau{nn}(ii) = pi* trapz(altitude, Qe_avg(:,end) .* re_meters.^2 .* total_Nc_meters);
@@ -1017,7 +1017,7 @@ else
             % Or we could compute the average extinction efficiency
             % over a droplet size distrubution
             [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
-                550, 'water', 'gamma');
+                550, 'water', 'gamma', ii);
 
             vert_profs.tau(ii) = pi* trapz(flipud(altitude), flipud(Qe_avg' .* re_meters.^2 .* total_Nc_meters));
 
@@ -1064,7 +1064,7 @@ else
         % Or we could compute the average extinction efficiency
         % over a droplet size distrubution
         [~, Qe_avg, ~] = average_mie_over_size_distribution(re_meters.*1e6, linspace(10,10,length(re_meters)),...
-            550, 'water', 'gamma');
+            550, 'water', 'gamma', ii);
 
 
         vert_profs.tau(ii) = pi* trapz(altitude, Qe_avg(:,end) .* re_meters.^2 .* total_Nc_meters);

@@ -92,7 +92,7 @@ ensemble_profiles.sort_for_precip_driz = true;
 ensemble_profiles.keep_precip_drizzle_profiles = false;             % if false, keep non-precip profiles only
 
 % The threshold is defined as the total 2DC LWP
-ensemble_profiles.precip_driz_threshold = 25;         % g/m^2
+ensemble_profiles.precip_driz_threshold = 35;         % g/m^2
 
 % Load data
 
